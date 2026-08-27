@@ -60,7 +60,6 @@ export default function Dashboard({ user, onLogout }) {
         console.error("Error al verificar cierre de caja:", closureError.message);
       }
 
-      // Si existe al menos un registro para el día de hoy, la caja está cerrada/bloqueada
       if (closureData && closureData.length > 0) {
         setIsCajaClosed(true);
       } else {
@@ -79,7 +78,6 @@ export default function Dashboard({ user, onLogout }) {
       }
       setBookmakers(bookmakerData || []);
 
-      // Calcular Bankroll total sumando el saldo real de todas las casas del usuario
       const totalBankroll = (bookmakerData || []).reduce((acc, b) => acc + Number(b.current_balance || 0), 0);
 
       // 3. Obtener Apuestas (Bets) para calcular KPIs, pendientes y P&L diario
@@ -97,7 +95,6 @@ export default function Dashboard({ user, onLogout }) {
       const pending = allBets.filter(b => b.status === 'PENDING');
       setPendingBets(pending);
 
-      // Cálculos Financieros Reales
       const totalProfit = settledBets.reduce((acc, b) => acc + Number(b.profit_loss || 0), 0);
       const totalStaked = settledBets.reduce((acc, b) => acc + Number(b.stake || 0), 0);
       const wonCount = settledBets.filter(b => b.status === 'WON').length;
@@ -150,12 +147,10 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // Dinámica de fecha en tiempo real para el gráfico
   const currentMonthName = new Date().toLocaleString('es-ES', { month: 'long' });
   const capitalizedMonth = currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1);
   const currentMonthYearBadge = new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' });
 
-  // Saludo según hora del día
   const currentHour = new Date().getHours();
   const timeGreeting = currentHour < 12 ? 'Buenos días' : currentHour < 18 ? 'Buenas tardes' : 'Buenas noches';
   const userName = user?.user_metadata?.full_name || user?.name || 'Lenyn';
@@ -184,8 +179,39 @@ export default function Dashboard({ user, onLogout }) {
           from { opacity: 0; transform: translateY(-6px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes livePulse {
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+          70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+        }
         .greeting-badge {
           animation: fadeInSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards, pulseGlow 4s infinite ease-in-out;
+        }
+        .animated-panel {
+          transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .animated-panel:hover {
+          transform: translateY(-4px);
+          border-color: rgba(56, 189, 248, 0.35);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 20px rgba(37, 99, 235, 0.15);
+        }
+        .bookmaker-row {
+          transition: all 0.25s ease;
+        }
+        .bookmaker-row:hover {
+          background: rgba(30, 41, 59, 0.6);
+          border-color: rgba(56, 189, 248, 0.4);
+          transform: translateX(4px);
+        }
+        .pending-card-item {
+          transition: all 0.25s ease;
+        }
+        .pending-card-item:hover {
+          background: rgba(30, 41, 59, 0.7);
+          border-color: rgba(56, 189, 248, 0.3);
+        }
+        .live-dot {
+          animation: livePulse 2s infinite;
         }
       `}</style>
 
@@ -277,7 +303,7 @@ export default function Dashboard({ user, onLogout }) {
       {/* CONTENEDOR PRINCIPAL DEL DASHBOARD */}
       <main style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1400px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         
-        {/* 2. CABECERA DE ESTADO Y ALERTA DE DISCIPLINA (Sincronizada con Supabase) */}
+        {/* 2. CABECERA DE ESTADO Y ALERTA DE DISCIPLINA */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -543,59 +569,127 @@ export default function Dashboard({ user, onLogout }) {
             </div>
           </div>
 
-          {/* Bloque de Liquidez por Casa y Apuestas Pendientes */}
+          {/* ========================================================================= */}
+          {/* APARTADO MEJORADO: LIQUIDEZ POR CASA DE APUESTAS Y APUESTAS PENDIENTES     */}
+          {/* ========================================================================= */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
-            <div style={{
+            {/* Tarjeta de Liquidez por Casa */}
+            <div className="animated-panel" style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
               borderRadius: '16px',
-              padding: '20px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+              padding: '22px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+              backdropFilter: 'blur(12px)'
             }}>
-              <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#f8fafc', marginBottom: '14px' }}>Liquidez por Casa de Apuestas</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#f8fafc', letterSpacing: '0.3px' }}>Liquidez por Casa de Apuestas</h4>
+                <span style={{ fontSize: '11px', color: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                  {bookmakers.length} Activas
+                </span>
+              </div>
+              
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {bookmakers.length > 0 ? (
                   bookmakers.map((b) => (
-                    <div key={b.id} style={bookmakerRowStyle}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>🟢 {b.name}</span>
-                      <span style={{ fontWeight: '700', color: '#f8fafc' }}>S/ {Number(b.current_balance).toFixed(2)}</span>
+                    <div key={b.id} className="bookmaker-row" style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '12px 14px',
+                      backgroundColor: '#07090e',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      fontSize: '13px'
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '600', color: '#e2e8f0' }}>
+                        <span className="live-dot" style={{ width: '8px', height: '8px', backgroundColor: '#4ade80', borderRadius: '50%', display: 'inline-block' }}></span> 
+                        {b.name}
+                      </span>
+                      <span style={{ fontWeight: '800', color: '#38bdf8', fontSize: '14px', letterSpacing: '-0.3px' }}>
+                        S/ {Number(b.current_balance).toFixed(2)}
+                      </span>
                     </div>
                   ))
                 ) : (
-                  <div style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', padding: '10px' }}>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', padding: '16px', background: '#07090e', borderRadius: '10px', border: '1px dashed #1e293b' }}>
                     No hay casas registradas
                   </div>
                 )}
               </div>
             </div>
 
-            <div style={{
+            {/* Tarjeta de Apuestas Pendientes */}
+            <div className="animated-panel" style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
               borderRadius: '16px',
-              padding: '20px',
+              padding: '22px',
               boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-              flex: 1
+              backdropFilter: 'blur(12px)',
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column'
             }}>
-              <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#f8fafc', marginBottom: '14px' }}>Apuestas Pendientes ({pendingBets.length})</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#f8fafc', letterSpacing: '0.3px' }}>
+                  Apuestas Pendientes
+                </h4>
+                <span style={{ 
+                  fontSize: '11px', 
+                  fontWeight: '700', 
+                  backgroundColor: pendingBets.length > 0 ? 'rgba(234, 179, 8, 0.15)' : 'rgba(100, 116, 139, 0.15)', 
+                  color: pendingBets.length > 0 ? '#facc15' : '#94a3b8', 
+                  padding: '3px 9px', 
+                  borderRadius: '6px',
+                  border: `1px solid ${pendingBets.length > 0 ? 'rgba(234, 179, 8, 0.3)' : 'rgba(100, 116, 139, 0.3)'}`
+                }}>
+                  {pendingBets.length} en curso
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: pendingBets.length === 0 ? 'center' : 'flex-start' }}>
                 {pendingBets.length > 0 ? (
                   pendingBets.slice(0, 3).map((bet) => (
-                    <div key={bet.id} style={{ backgroundColor: '#07090e', padding: '10px 12px', borderRadius: '8px', border: '1px solid #1e293b', fontSize: '12px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: '600', color: '#38bdf8' }}>Apuesta #{bet.id} ({bet.bet_type})</span>
-                        <span style={{ color: '#facc15' }}>Pendiente</span>
+                    <div key={bet.id} className="pending-card-item" style={{ 
+                      backgroundColor: '#07090e', 
+                      padding: '12px 14px', 
+                      borderRadius: '10px', 
+                      border: '1px solid rgba(255, 255, 255, 0.05)', 
+                      fontSize: '12px' 
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', alignItems: 'center' }}>
+                        <span style={{ fontWeight: '700', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '6px', height: '6px', backgroundColor: '#38bdf8', borderRadius: '50%' }}></span>
+                          Apuesta #{bet.id} {bet.bet_type ? `(${bet.bet_type})` : ''}
+                        </span>
+                        <span style={{ color: '#facc15', fontWeight: '700', fontSize: '11px', backgroundColor: 'rgba(234, 179, 8, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                          Pendiente ⏳
+                        </span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8' }}>
-                        <span>Stake: S/ {Number(bet.stake).toFixed(2)}</span>
-                        <span>Cuota: {Number(bet.total_odds).toFixed(2)}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '11.5px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '6px' }}>
+                        <span>Stake: <strong style={{ color: '#f8fafc' }}>S/ {Number(bet.stake).toFixed(2)}</strong></span>
+                        <span>Cuota Total: <strong style={{ color: '#4ade80' }}>{Number(bet.total_odds).toFixed(2)}</strong></span>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', padding: '10px' }}>
-                    No hay apuestas pendientes
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: '#64748b', 
+                    textAlign: 'center', 
+                    padding: '24px 12px', 
+                    background: '#07090e', 
+                    borderRadius: '10px', 
+                    border: '1px dashed #1e293b',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span style={{ fontSize: '18px' }}>🎯</span>
+                    <span>No hay apuestas pendientes en este momento</span>
                   </div>
                 )}
               </div>
@@ -635,17 +729,6 @@ const kpiValueStyle = {
   fontWeight: '800',
   color: '#ffffff',
   letterSpacing: '-0.5px'
-}
-
-const bookmakerRowStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: '10px 12px',
-  backgroundColor: '#07090e',
-  borderRadius: '8px',
-  border: '1px solid #1e293b',
-  fontSize: '13px'
 }
 
 function handleCardHover(e) {
