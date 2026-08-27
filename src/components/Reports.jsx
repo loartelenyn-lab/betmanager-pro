@@ -2,28 +2,31 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabase/client'
 
 export default function Reports() {
-  // --- FUNCIÓN AUXILIAR PARA FECHAS DINÁMICAS ---
-  const getLocalDateString = (dateObj) => {
-    const year = dateObj.getFullYear()
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0')
-    const day = String(dateObj.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
+  // --- FUNCIÓN AUXILIAR PARA FECHAS DINÁMICAS EXACTAS (ZONA HORARIA PERÚ) ---
+  const getPeruDateString = (dateObj) => {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Lima',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(dateObj)
   }
 
-  // Obtenemos la fecha de hoy real del sistema
+  // Obtenemos la fecha de hoy real basada en la zona horaria local correcta
   const todayDateObj = new Date()
-  const todayStr = getLocalDateString(todayDateObj)
+  const todayStr = getPeruDateString(todayDateObj)
 
-  // Obtenemos la fecha de ayer restando 1 día
-  const yesterdayDateObj = new Date()
+  // Obtenemos la fecha de ayer restando 1 día correctamente al objeto base
+  const yesterdayDateObj = new Date(todayDateObj)
   yesterdayDateObj.setDate(todayDateObj.getDate() - 1)
-  const yesterdayStr = getLocalDateString(yesterdayDateObj)
+  const yesterdayStr = getPeruDateString(yesterdayDateObj)
 
   // --- ESTADOS DE FILTRADO Y CALENDARIO ---
   const [activeTab, setActiveTab] = useState('month')
   const [startDate, setStartDate] = useState(() => {
-    const firstDay = new Date(todayDateObj.getFullYear(), todayDateObj.getMonth(), 1)
-    return getLocalDateString(firstDay)
+    // Primer día del mes actual respetando la zona local
+    const parts = todayStr.split('-')
+    return `${parts[0]}-${parts[1]}-01`
   })
   const [endDate, setEndDate] = useState(todayStr)
   
@@ -90,7 +93,9 @@ export default function Reports() {
         const formatted = data.map(bet => {
           let dateStr = todayStr
           if (bet.created_at) {
-            dateStr = bet.created_at.substring(0, 10)
+            // Convertir la fecha de Supabase a la zona horaria local para que coincida exactamente
+            const betLocalDate = new Date(bet.created_at)
+            dateStr = getPeruDateString(betLocalDate)
           }
 
           const sportInfo = bet.bet_legs && bet.bet_legs.length > 0 
@@ -225,18 +230,20 @@ export default function Reports() {
       setStartDate(yesterdayStr)
       setEndDate(yesterdayStr)
     } else if (tabKey === 'week') {
-      const weekAgo = new Date()
+      const weekAgo = new Date(todayDateObj)
       weekAgo.setDate(todayDateObj.getDate() - 7)
-      setStartDate(getLocalDateString(weekAgo))
+      setStartDate(getPeruDateString(weekAgo))
       setEndDate(todayStr)
     } else if (tabKey === 'month') {
-      const firstDayMonth = new Date(todayDateObj.getFullYear(), todayDateObj.getMonth(), 1)
-      const lastDayMonth = new Date(todayDateObj.getFullYear(), todayDateObj.getMonth() + 1, 0)
-      setStartDate(getLocalDateString(firstDayMonth))
-      setEndDate(getLocalDateString(lastDayMonth))
+      const parts = todayStr.split('-')
+      const firstDayMonth = `${parts[0]}-${parts[1]}-01`
+      const lastDayObj = new Date(Number(parts[0]), Number(parts[1]), 0)
+      setStartDate(firstDayMonth)
+      setEndDate(getPeruDateString(lastDayObj))
     } else if (tabKey === 'year') {
-      setStartDate(`${todayDateObj.getFullYear()}-01-01`)
-      setEndDate(`${todayDateObj.getFullYear()}-12-31`)
+      const currentYear = todayStr.split('-')[0]
+      setStartDate(`${currentYear}-01-01`)
+      setEndDate(`${currentYear}-12-31`)
     } else if (tabKey === 'all') {
       setStartDate('2025-01-01')
       setEndDate('2030-12-31')
@@ -246,7 +253,7 @@ export default function Reports() {
   const handleDownloadCSV = () => {
     let csvContent = "data:text/csv;charset=utf-8,"
     csvContent += "=== REPORTE FINANCIERO Y P&L - BETMANAGER PRO ===\n"
-    csvContent += `Periodo:,${startDate} al ${endDate}\n`
+    csvContent += `Periodo:,${startDate.split('-').reverse().join('/')} al ${endDate.split('-').reverse().join('/')}\n`
     csvContent += `Balance del Periodo:,${metrics.netProfit >= 0 ? 'GANANCIA EN LA FECHA' : 'PÉRDIDA EN LA FECHA'}\n`
     csvContent += `P&L Neto:,S/ ${metrics.netProfit.toFixed(2)}\n`
     csvContent += `ROI:,${metrics.roi.toFixed(2)}%\n`
@@ -254,7 +261,8 @@ export default function Reports() {
     csvContent += "ID,Fecha,Casa de Apuestas,Deporte/Evento,Tipo,Fondo,Cuota,Stake,Resultado,P&L Neto (PEN)\n"
 
     filteredBets.forEach(bet => {
-      const row = [bet.id, bet.date, `"${bet.bookmaker}"`, `"${bet.sport}"`, bet.type, bet.fund, bet.odd, bet.stake, translateResult(bet.result), bet.net]
+      const formattedDate = bet.date ? bet.date.split('-').reverse().join('/') : bet.date
+      const row = [bet.id, formattedDate, `"${bet.bookmaker}"`, `"${bet.sport}"`, bet.type, bet.fund, bet.odd, bet.stake, translateResult(bet.result), bet.net]
       csvContent += row.join(",") + "\n"
     })
 
@@ -270,6 +278,9 @@ export default function Reports() {
   const handleDownloadPDF = () => {
     const printWindow = window.open('', '_blank')
     const isProfitable = metrics.netProfit >= 0
+    const formattedStartDate = startDate.split('-').reverse().join('/')
+    const formattedEndDate = endDate.split('-').reverse().join('/')
+    const generationDate = new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', dateStyle: 'short', timeStyle: 'medium' }).format(new Date())
 
     const htmlContent = `
       <html>
@@ -314,7 +325,7 @@ export default function Reports() {
           <div class="header-container">
             <div>
               <h1>BetManager Pro - Auditoría Financiera y P&L</h1>
-              <div class="subtitle">Periodo analizado: ${startDate} al ${endDate} &nbsp;|&nbsp; Generado el: ${new Date().toLocaleDateString()}</div>
+              <div class="subtitle">Periodo analizado: ${formattedStartDate} al ${formattedEndDate} &nbsp;|&nbsp; Generado el: ${generationDate}</div>
             </div>
           </div>
 
@@ -354,7 +365,7 @@ export default function Reports() {
             <tbody>
               ${filteredBets.map(bet => `
                 <tr>
-                  <td>${bet.date}</td>
+                  <td>${bet.date ? bet.date.split('-').reverse().join('/') : bet.date}</td>
                   <td><b>${bet.bookmaker}</b></td>
                   <td>${bet.sport}</td>
                   <td>${bet.type}</td>
@@ -691,7 +702,7 @@ export default function Reports() {
               ) : filteredBets.length > 0 ? (
                 filteredBets.map(bet => (
                   <tr key={bet.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', transition: 'background 0.2s' }}>
-                    <td style={{ padding: '12px 10px', color: '#94a3b8' }}>{bet.date}</td>
+                    <td style={{ padding: '12px 10px', color: '#94a3b8' }}>{bet.date ? bet.date.split('-').reverse().join('/') : bet.date}</td>
                     <td style={{ padding: '12px 10px', fontWeight: '700', color: '#38bdf8' }}>{bet.bookmaker}</td>
                     <td style={{ padding: '12px 10px', color: '#cbd5e1' }}>{bet.sport}</td>
                     <td style={{ padding: '12px 10px' }}><span style={{ backgroundColor: 'rgba(255,255,255,0.06)', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '700' }}>{bet.type}</span></td>

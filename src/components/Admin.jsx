@@ -109,7 +109,7 @@ export default function Admin() {
         })))
       }
 
-      // 5. Cargar Cierres de Caja
+      // 5. Cargar Cierres de Caja (Mapeando correctamente la hora local con closed_at)
       const todayStr = new Date().toISOString().split('T')[0]
       const { data: closures } = await supabase
         .from('daily_closures')
@@ -138,16 +138,14 @@ export default function Admin() {
     try {
       let balanceChange = 0;
       
-      // Si se gana la apuesta, se suma el Stake inicial + el Beneficio Neto (Profit)
       if (newStatus === 'WON' || newStatus === 'Ganada') {
         balanceChange = Number(stake) + Number(profit);
       } else if (newStatus === 'LOST' || newStatus === 'Perdida') {
-        balanceChange = 0; // Si el stake ya fue descontado al crearla
+        balanceChange = 0;
       } else if (newStatus === 'CASHOUT') {
         balanceChange = Number(profit);
       }
 
-      // Obtener el saldo actual de la casa en Supabase
       const { data: bookData, error: bookError } = await supabase
         .from('bookmakers')
         .select('current_balance')
@@ -159,7 +157,6 @@ export default function Admin() {
       const currentBookBalance = Number(bookData.current_balance || 0);
       const updatedBalance = currentBookBalance + balanceChange;
 
-      // Actualizar el saldo en la tabla 'bookmakers'
       const { error: updateBookError } = await supabase
         .from('bookmakers')
         .update({ current_balance: updatedBalance })
@@ -167,7 +164,6 @@ export default function Admin() {
 
       if (updateBookError) throw updateBookError;
 
-      // Recargar datos locales del Admin para reflejar el nuevo saldo de inmediato
       loadSupabaseData();
       
     } catch (error) {
@@ -175,7 +171,6 @@ export default function Admin() {
     }
   };
 
-  // Manejador para agregar Bookmaker en Supabase
   const handleAddBookmaker = async (e) => {
     e.preventDefault()
     if (!newBookName.trim()) return
@@ -233,7 +228,6 @@ export default function Admin() {
     }
   }
 
-  // Manejador para agregar Deporte en Supabase
   const handleAddSport = async (e) => {
     e.preventDefault()
     if (!newSportInput.trim()) return
@@ -270,7 +264,6 @@ export default function Admin() {
     setSportsList(sportsList.map(s => s.id === id ? { ...s, active: !s.active } : s))
   }
 
-  // Manejador para agregar Torneo/Liga en Supabase
   const handleAddTournament = async (e) => {
     e.preventDefault()
     if (!newTournamentInput.trim()) return
@@ -316,16 +309,23 @@ export default function Admin() {
     setTournamentsList(tournamentsList.map(t => t.id === id ? { ...t, active: !t.active } : t))
   }
 
-  // Ejecutar Cierre de Caja Definitivo en Supabase
+  // Ejecutar Cierre de Caja Definitivo en Supabase registrando la hora exacta
   const executeDailyClosure = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
       const todayStr = new Date().toISOString().split('T')[0]
+      const nowIso = new Date().toISOString()
+
       const { error } = await supabase
         .from('daily_closures')
-        .insert([{ user_id: user.id, closure_date: todayStr, notes: 'Cierre ejecutado desde panel de administración' }])
+        .insert([{ 
+          user_id: user.id, 
+          closure_date: todayStr, 
+          closed_at: nowIso,
+          notes: 'Cierre ejecutado desde panel de administración' 
+        }])
 
       if (error) throw error
 
@@ -338,7 +338,6 @@ export default function Admin() {
     }
   }
 
-  // Guardar Cambios de Perfil en Supabase
   const handleSaveProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -362,7 +361,6 @@ export default function Admin() {
     }
   }
 
-  // Exportar Backup JSON
   const handleBackupJSON = () => {
     const backupData = {
       user: userName,

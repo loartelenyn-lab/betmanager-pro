@@ -55,7 +55,15 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
           odds: Number(b.total_odds),
           payout: Number(b.potential_payout),
           status: b.status,
-          date: new Date(b.created_at).toLocaleDateString('es-PE'),
+          date: new Date(b.created_at).toLocaleString('es-PE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          }),
           profit: Number(b.profit_loss || 0),
           cashout_amount: Number(b.cashout_amount || 0), // 👈 Guardamos el cashout previo para revertirlo bien si se reabre
           legs: (b.bet_legs || []).map(l => ({
@@ -337,7 +345,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
                     </div>
 
                     <div>
-                      <span style={{ fontSize: '10px', color: '#64748b', display: 'block', fontWeight: '700' }}>FECHA</span>
+                      <span style={{ fontSize: '10px', color: '#64748b', display: 'block', fontWeight: '700' }}>FECHA Y HORA</span>
                       <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: '600' }}>{bet.date}</span>
                     </div>
 
@@ -467,7 +475,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
                     </div>
 
                     <div>
-                      <span style={{ fontSize: '10px', color: '#64748b', display: 'block', fontWeight: '700' }}>FECHA</span>
+                      <span style={{ fontSize: '10px', color: '#64748b', display: 'block', fontWeight: '700' }}>FECHA Y HORA</span>
                       <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: '600' }}>{bet.date}</span>
                     </div>
 

@@ -67,7 +67,15 @@ export default function Bankroll({
             bookmaker: foundBook?.name || 'Casa Externa',
             amount: Number(t.amount),
             method: t.notes || 'Estándar',
-            date: new Date(t.created_at).toLocaleString()
+            date: new Date(t.created_at).toLocaleString('es-PE', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true
+            })
           }
         })
         setTransactions(mappedTx)
@@ -157,7 +165,15 @@ export default function Bankroll({
           bookmaker: targetBook.name,
           amount: numericAmount,
           method: insertedTx.notes,
-          date: new Date(insertedTx.created_at).toLocaleString()
+          date: new Date(insertedTx.created_at).toLocaleString('es-PE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          })
         }
 
         const updatedTransactions = [newTx, ...transactions]

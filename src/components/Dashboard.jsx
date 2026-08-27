@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase/client'
 
+// Función para obtener el timestamp actual ajustado a Perú (UTC-5)
+const getPeruTimestamp = () => {
+  const now = new Date();
+  const peruTime = new Date(now.getTime() - (5 * 60 * 60 * 1000));
+  return peruTime.toISOString(); // Formato ISO compatible con TIMESTAMPTZ de Supabase
+};
+
 export default function Dashboard({ user, onLogout }) {
   // Estado para el control de la caja (Juego Responsable)
   const [isCajaClosed, setIsCajaClosed] = useState(false)
@@ -90,11 +97,13 @@ export default function Dashboard({ user, onLogout }) {
         avgStake: avgStakeVal
       });
 
-      // 4. Procesar Dinámicamente el P&L Diario basado en la fecha de las apuestas liquidadas
+      // 4. Procesar Dinámicamente el P&L Diario ajustando las fechas a la zona horaria de Perú (UTC-5)
       const daysMap = {};
       settledBets.forEach(bet => {
-        const dateObj = new Date(bet.created_at);
-        const dayStr = String(dateObj.getDate()).padStart(2, '0');
+        // Creamos la fecha y aplicamos el desfase de -5 horas para mantener consistencia con getPeruTimestamp
+        const rawDate = new Date(bet.created_at);
+        const peruDate = new Date(rawDate.getTime() - (5 * 60 * 60 * 1000));
+        const dayStr = String(peruDate.getDate()).padStart(2, '0');
         
         if (!daysMap[dayStr]) {
           daysMap[dayStr] = { day: dayStr, profit: 0, volume: 0, bets: 0 };
