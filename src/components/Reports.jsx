@@ -5,7 +5,7 @@ export default function Reports() {
   // --- ESTADOS DE FILTRADO Y CALENDARIO ---
   const [activeTab, setActiveTab] = useState('month')
   const [startDate, setStartDate] = useState('2026-08-01')
-  const [endDate, setEndDate] = useState('2026-08-26')
+  const [endDate, setEndDate] = useState('2026-08-31')
   
   // Filtros Cruzados de Segmentación
   const [bookmakerFilter, setBookmakerFilter] = useState('all')
@@ -46,7 +46,7 @@ export default function Reports() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Consultamos la tabla bets y hacemos un join con bookmakers y bet_legs para obtener toda la información
+      // Consultamos la tabla bets y hacemos un join con bookmakers y bet_legs
       const { data, error } = await supabase
         .from('bets')
         .select(`
@@ -68,27 +68,30 @@ export default function Reports() {
       if (error) throw error
 
       if (data) {
-        // Mapeamos los datos al formato que consumen las métricas y la tabla
+        // Mapeamos los datos garantizando formato de fecha local YYYY-MM-DD
         const formatted = data.map(bet => {
-          const dateStr = bet.created_at ? bet.created_at.split('T')[0] : '2026-08-26'
-          // Concatenamos las selecciones de las patas si existen
+          let dateStr = '2026-08-26'
+          if (bet.created_at) {
+            // Extraemos la fecha de forma segura ignorando desfases de UTC
+            dateStr = bet.created_at.substring(0, 10)
+          }
+
           const sportInfo = bet.bet_legs && bet.bet_legs.length > 0 
             ? bet.bet_legs.map(l => `${l.match_name} (${l.selection})`).join(' | ') 
             : (bet.notes || 'Apuesta Registrada')
 
-          // Mapeo de estados de Supabase a la vista
+          // Mapeo robusto de estados de Supabase a la vista
           let mappedResult = 'Pending'
-          if (bet.status === 'WON') mappedResult = 'Won'
-          else if (bet.status === 'LOST') mappedResult = 'Lost'
-          else if (bet.status === 'VOID') mappedResult = 'Void'
-          else if (bet.status === 'CASHOUT') mappedResult = 'Cashout'
+          const upperStatus = (bet.status || '').toUpperCase()
+          if (upperStatus === 'WON') mappedResult = 'Won'
+          else if (upperStatus === 'LOST') mappedResult = 'Lost'
+          else if (upperStatus === 'VOID') mappedResult = 'Void'
+          else if (upperStatus === 'CASHOUT') mappedResult = 'Cashout'
 
-          // Mapeo de tipos de apuesta
           let mappedType = 'Simple'
           if (bet.bet_type === 'PARLAY') mappedType = 'Parlay'
           else if (bet.bet_type === 'BETBUILDER') mappedType = 'BetBuilder'
 
-          // Mapeo de fondos
           let mappedFund = 'Cash'
           if (bet.fund_type === 'FREEBET') mappedFund = 'Freebet'
           else if (bet.fund_type === 'BONUS') mappedFund = 'Bono'
@@ -120,10 +123,19 @@ export default function Reports() {
   const filteredBets = useMemo(() => {
     return rawBetsData.filter(bet => {
       const betDate = bet.date
+      // Rango inclusivo flexible
       if (betDate < startDate || betDate > endDate) return false
-      if (bookmakerFilter !== 'all' && bet.bookmaker_id !== Number(bookmakerFilter) && bet.bookmaker !== bookmakerFilter) return false
+      
+      // Filtrado corregido por ID de casa de apuestas o nombre
+      if (bookmakerFilter !== 'all') {
+        const matchesId = bet.bookmaker_id === Number(bookmakerFilter)
+        const matchesName = bet.bookmaker.toLowerCase() === String(bookmakerFilter).toLowerCase()
+        if (!matchesId && !matchesName) return false
+      }
+
       if (betTypeFilter !== 'all' && bet.type !== betTypeFilter) return false
       if (fundTypeFilter !== 'all' && bet.fund !== fundTypeFilter) return false
+      
       return true
     })
   }, [rawBetsData, startDate, endDate, bookmakerFilter, betTypeFilter, fundTypeFilter])
@@ -204,13 +216,13 @@ export default function Reports() {
       setEndDate(today)
     } else if (tabKey === 'month') {
       setStartDate('2026-08-01')
-      setEndDate(today)
+      setEndDate('2026-08-31')
     } else if (tabKey === 'year') {
       setStartDate('2026-01-01')
-      setEndDate(today)
+      setEndDate('2026-12-31')
     } else if (tabKey === 'all') {
       setStartDate('2025-01-01')
-      setEndDate(today)
+      setEndDate('2030-12-31')
     }
   }
 
@@ -239,7 +251,7 @@ export default function Reports() {
     document.body.removeChild(link)
   }
 
-  // --- FUNCIÓN DE DESCARGA / VISTA PREVIA DE PDF PROFESIONAL MEJORADA ---
+  // --- FUNCIÓN DE DESCARGA / VISTA PREVIA DE PDF PROFESIONAL ---
   const handleDownloadPDF = () => {
     const printWindow = window.open('', '_blank')
     const isProfitable = metrics.netProfit >= 0
