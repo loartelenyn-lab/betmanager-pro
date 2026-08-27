@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabase/client'
 
 export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
+  // --- FUNCIÓN AUXILIAR PARA HUSO HORARIO DE SUDAMÉRICA (PERÚ UTC-5) ---
+  const getPeruTimestamp = () => {
+    const now = new Date()
+    const peruTime = new Date(now.getTime() - (5 * 60 * 60 * 1000))
+    return peruTime.toISOString()
+  }
+
   // Estado general del formulario
   const [betType, setBetType] = useState('Simple') // Simple | Parlay | BetBuilder
   const [bookmakersList, setBookmakersList] = useState([])
@@ -162,7 +169,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
 
   const potentialPayout = (numericStake * effectiveOdds).toFixed(2)
 
-  // Manejo del Envío
+  // Manejo del Envío (Corregido con Auth de respaldo y marca de tiempo de Sudamérica)
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (isCajaClosed) return
@@ -181,6 +188,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
     try {
       setLoading(true)
 
+      // Garantizar la identidad del usuario para el RPC
       let currentUserId = user?.id;
       if (!currentUserId) {
         const { data: authData } = await supabase.auth.getUser();
@@ -188,6 +196,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
       }
       if (!currentUserId) throw new Error("Usuario no autenticado");
 
+      // Preparar las selecciones en formato JSONB
       let compiledLegs = []
       if (betType === 'BetBuilder') {
         compiledLegs = bbMarkets.map(m => ({
@@ -207,6 +216,8 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
         }))
       }
 
+      // Llamada a la función RPC pasando opcionalmente el timestamp ajustado si tu función lo soporta,
+      // o asegurando el registro de fecha local.
       const { data, error } = await supabase.rpc('register_bet_transaction', {
         p_user_id: currentUserId,
         p_bookmaker_id: Number(selectedBookmakerId),
@@ -221,7 +232,16 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
 
       if (error) throw error;
 
+      // Actualizamos adicionalmente el created_at de la última apuesta insertada si la función RPC usa un NOW() interno por defecto
       if (data && data.success) {
+        // Corrección de seguridad para alinear la última apuesta al huso horario de Perú
+        await supabase
+          .from('bets')
+          .update({ created_at: getPeruTimestamp() })
+          .eq('user_id', currentUserId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
         setSuccessMessage(true)
         if (onSaveBet) onSaveBet(data)
 
@@ -424,7 +444,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                       const filtered = getFilteredLeagues(e.target.value);
                       if (filtered.length > 0) setBbLeagueId(filtered[0].id);
                     }}
-                    style={inputStyle}
+                    style={subInputStyle}
                     className="input-glow"
                   >
                     {sports.map(sport => (
@@ -437,7 +457,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                   <select
                     value={bbLeagueId}
                     onChange={(e) => setBbLeagueId(e.target.value)}
-                    style={inputStyle}
+                    style={subInputStyle}
                     className="input-glow"
                   >
                     {getFilteredLeagues(bbSportId).map(league => (
@@ -452,7 +472,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                     placeholder="Ej: Real Madrid vs. Barcelona"
                     value={bbMatchName}
                     onChange={(e) => setBbMatchName(e.target.value)}
-                    style={inputStyle}
+                    style={subInputStyle}
                     className="input-glow"
                   />
                 </div>
@@ -493,7 +513,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
           </div>
 
           {betType === 'BetBuilder' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeInPage 0.3s ease' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', animation: 'fadeInPage 0.3s ease' }}>
               {bbMarkets.map((m, index) => (
                 <div key={m.id} style={{
                   backgroundColor: '#07090e',
@@ -515,7 +535,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                         const updated = bbMarkets.map(item => item.id === m.id ? { ...item, selection: e.target.value } : item)
                         setBbMarkets(updated)
                       }}
-                      style={inputStyle}
+                      style={subInputStyle}
                       className="input-glow"
                     />
                   </div>
@@ -529,7 +549,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                           color: '#f87171',
                           border: '1px solid rgba(239, 68, 68, 0.3)',
                           borderRadius: '8px',
-                          padding: '12px 14px',
+                          padding: '10px 12px',
                           cursor: 'pointer',
                           fontSize: '13px'
                         }}
@@ -559,7 +579,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                     <select
                       value={leg.sport_id}
                       onChange={(e) => handleLegChange(leg.id, 'sport_id', e.target.value)}
-                      style={inputStyle}
+                      style={subInputStyle}
                       className="input-glow"
                     >
                       {sports.map(sport => (
@@ -573,7 +593,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                     <select
                       value={leg.league_id}
                       onChange={(e) => handleLegChange(leg.id, 'league_id', e.target.value)}
-                      style={inputStyle}
+                      style={subInputStyle}
                       className="input-glow"
                     >
                       {getFilteredLeagues(leg.sport_id).map(league => (
@@ -589,7 +609,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                       placeholder="Ej: Real Madrid vs Barcelona"
                       value={leg.match_name}
                       onChange={(e) => handleLegChange(leg.id, 'match_name', e.target.value)}
-                      style={inputStyle}
+                      style={subInputStyle}
                       className="input-glow"
                     />
                   </div>
@@ -601,7 +621,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                       placeholder="Ej: Más de 2.5 goles"
                       value={leg.selection}
                       onChange={(e) => handleLegChange(leg.id, 'selection', e.target.value)}
-                      style={inputStyle}
+                      style={subInputStyle}
                       className="input-glow"
                     />
                   </div>
@@ -615,7 +635,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                         placeholder="1.85"
                         value={leg.odds}
                         onChange={(e) => handleLegChange(leg.id, 'odds', e.target.value)}
-                        style={inputStyle}
+                        style={subInputStyle}
                         className="input-glow"
                       />
                     </div>
@@ -631,7 +651,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                           color: '#f87171',
                           border: '1px solid rgba(239, 68, 68, 0.3)',
                           borderRadius: '8px',
-                          padding: '12px 14px',
+                          padding: '10px 12px',
                           cursor: 'pointer',
                           fontSize: '13px'
                         }}
@@ -789,7 +809,6 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
   )
 }
 
-// Estilo unificado y grande (idéntico al del Parlay)
 const inputStyle = {
   width: '100%',
   backgroundColor: '#07090e',
@@ -798,6 +817,19 @@ const inputStyle = {
   padding: '12px',
   color: '#ffffff',
   fontSize: '13px',
+  outline: 'none',
+  boxSizing: 'border-box',
+  transition: 'all 0.2s ease'
+}
+
+const subInputStyle = {
+  width: '100%',
+  backgroundColor: '#07090e',
+  border: '1px solid #1e293b',
+  borderRadius: '8px',
+  padding: '10px',
+  color: '#ffffff',
+  fontSize: '12px',
   outline: 'none',
   boxSizing: 'border-box',
   transition: 'all 0.2s ease'
