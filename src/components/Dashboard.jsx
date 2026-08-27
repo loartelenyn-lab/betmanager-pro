@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase/client'
 
-// Función para obtener el timestamp actual ajustado a Perú (UTC-5)
-const getPeruTimestamp = () => {
+// Función para obtener la fecha actual ajustada a Perú (UTC-5)
+const getPeruDateString = () => {
   const now = new Date();
   const peruTime = new Date(now.getTime() - (5 * 60 * 60 * 1000));
-  return peruTime.toISOString(); // Formato ISO compatible con TIMESTAMPTZ de Supabase
+  return peruTime.toISOString().split('T')[0];
 };
 
 export default function Dashboard({ user, onLogout }) {
@@ -48,16 +48,20 @@ export default function Dashboard({ user, onLogout }) {
         return;
       }
 
-      // Sincronizar estatus real de la caja de hoy desde Supabase (Zona horaria Perú)
-      const todayStr = new Date(new Date().getTime() - (5 * 60 * 60 * 1000)).toISOString().split('T')[0];
-      const { data: closureData } = await supabase
+      // CORRECCIÓN CLAVE: Sincronización exacta del estatus de la caja de hoy usando la fecha de Perú (UTC-5)
+      const todayStr = getPeruDateString();
+      const { data: closureData, error: closureError } = await supabase
         .from('daily_closures')
         .select('*')
         .eq('user_id', currentUserId)
-        .eq('closure_date', todayStr)
-        .maybeSingle();
+        .eq('closure_date', todayStr);
 
-      if (closureData) {
+      if (closureError) {
+        console.error("Error al verificar cierre de caja:", closureError.message);
+      }
+
+      // Si existe al menos un registro para el día de hoy, la caja está cerrada/bloqueada
+      if (closureData && closureData.length > 0) {
         setIsCajaClosed(true);
       } else {
         setIsCajaClosed(false);
@@ -313,7 +317,7 @@ export default function Dashboard({ user, onLogout }) {
             alignItems: 'center',
             gap: '8px'
           }}>
-            <span>🛡️</span> {isCajaClosed ? 'Caja Protegida (Admin)' : 'Operaciones Habilitadas'}
+            <span>🛡️</span> {isCajaClosed ? 'Caja Protegida (Cerrada)' : 'Operaciones Habilitadas'}
           </div>
         </div>
 
