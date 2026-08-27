@@ -2,10 +2,30 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabase/client'
 
 export default function Reports() {
+  // --- FUNCIÓN AUXILIAR PARA FECHAS DINÁMICAS ---
+  const getLocalDateString = (dateObj) => {
+    const year = dateObj.getFullYear()
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+    const day = String(dateObj.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  // Obtenemos la fecha de hoy real del sistema
+  const todayDateObj = new Date()
+  const todayStr = getLocalDateString(todayDateObj)
+
+  // Obtenemos la fecha de ayer restando 1 día
+  const yesterdayDateObj = new Date()
+  yesterdayDateObj.setDate(todayDateObj.getDate() - 1)
+  const yesterdayStr = getLocalDateString(yesterdayDateObj)
+
   // --- ESTADOS DE FILTRADO Y CALENDARIO ---
   const [activeTab, setActiveTab] = useState('month')
-  const [startDate, setStartDate] = useState('2026-08-01')
-  const [endDate, setEndDate] = useState('2026-08-31')
+  const [startDate, setStartDate] = useState(() => {
+    const firstDay = new Date(todayDateObj.getFullYear(), todayDateObj.getMonth(), 1)
+    return getLocalDateString(firstDay)
+  })
+  const [endDate, setEndDate] = useState(todayStr)
   
   // Filtros Cruzados de Segmentación
   const [bookmakerFilter, setBookmakerFilter] = useState('all')
@@ -46,7 +66,6 @@ export default function Reports() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Consultamos la tabla bets y hacemos un join con bookmakers y bet_legs
       const { data, error } = await supabase
         .from('bets')
         .select(`
@@ -68,11 +87,9 @@ export default function Reports() {
       if (error) throw error
 
       if (data) {
-        // Mapeamos los datos garantizando formato de fecha local YYYY-MM-DD
         const formatted = data.map(bet => {
-          let dateStr = '2026-08-26'
+          let dateStr = todayStr
           if (bet.created_at) {
-            // Extraemos la fecha de forma segura ignorando desfases de UTC
             dateStr = bet.created_at.substring(0, 10)
           }
 
@@ -80,7 +97,6 @@ export default function Reports() {
             ? bet.bet_legs.map(l => `${l.match_name} (${l.selection})`).join(' | ') 
             : (bet.notes || 'Apuesta Registrada')
 
-          // Mapeo robusto de estados de Supabase a la vista
           let mappedResult = 'Pending'
           const upperStatus = (bet.status || '').toUpperCase()
           if (upperStatus === 'WON') mappedResult = 'Won'
@@ -123,10 +139,8 @@ export default function Reports() {
   const filteredBets = useMemo(() => {
     return rawBetsData.filter(bet => {
       const betDate = bet.date
-      // Rango inclusivo flexible
       if (betDate < startDate || betDate > endDate) return false
       
-      // Filtrado corregido por ID de casa de apuestas o nombre
       if (bookmakerFilter !== 'all') {
         const matchesId = bet.bookmaker_id === Number(bookmakerFilter)
         const matchesName = bet.bookmaker.toLowerCase() === String(bookmakerFilter).toLowerCase()
@@ -190,7 +204,6 @@ export default function Reports() {
     }
   }, [filteredBets])
 
-  // Traductor de estados al español para visualización
   const translateResult = (res) => {
     switch (res) {
       case 'Won': return 'GANADA'
@@ -201,32 +214,35 @@ export default function Reports() {
     }
   }
 
-  // Manejador de Tabs Rápidas
+  // Manejador de Tabs Rápidas Dinámicas
   const handleQuickTab = (tabKey) => {
     setActiveTab(tabKey)
-    const today = '2026-08-26'
+    
     if (tabKey === 'today') {
-      setStartDate(today)
-      setEndDate(today)
+      setStartDate(todayStr)
+      setEndDate(todayStr)
     } else if (tabKey === 'yesterday') {
-      setStartDate('2026-08-25')
-      setEndDate('2026-08-25')
+      setStartDate(yesterdayStr)
+      setEndDate(yesterdayStr)
     } else if (tabKey === 'week') {
-      setStartDate('2026-08-20')
-      setEndDate(today)
+      const weekAgo = new Date()
+      weekAgo.setDate(todayDateObj.getDate() - 7)
+      setStartDate(getLocalDateString(weekAgo))
+      setEndDate(todayStr)
     } else if (tabKey === 'month') {
-      setStartDate('2026-08-01')
-      setEndDate('2026-08-31')
+      const firstDayMonth = new Date(todayDateObj.getFullYear(), todayDateObj.getMonth(), 1)
+      const lastDayMonth = new Date(todayDateObj.getFullYear(), todayDateObj.getMonth() + 1, 0)
+      setStartDate(getLocalDateString(firstDayMonth))
+      setEndDate(getLocalDateString(lastDayMonth))
     } else if (tabKey === 'year') {
-      setStartDate('2026-01-01')
-      setEndDate('2026-12-31')
+      setStartDate(`${todayDateObj.getFullYear()}-01-01`)
+      setEndDate(`${todayDateObj.getFullYear()}-12-31`)
     } else if (tabKey === 'all') {
       setStartDate('2025-01-01')
       setEndDate('2030-12-31')
     }
   }
 
-  // --- FUNCIÓN DE DESCARGA DE CSV PROFESIONAL ---
   const handleDownloadCSV = () => {
     let csvContent = "data:text/csv;charset=utf-8,"
     csvContent += "=== REPORTE FINANCIERO Y P&L - BETMANAGER PRO ===\n"
@@ -251,7 +267,6 @@ export default function Reports() {
     document.body.removeChild(link)
   }
 
-  // --- FUNCIÓN DE DESCARGA / VISTA PREVIA DE PDF PROFESIONAL ---
   const handleDownloadPDF = () => {
     const printWindow = window.open('', '_blank')
     const isProfitable = metrics.netProfit >= 0
