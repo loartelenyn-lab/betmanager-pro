@@ -2,29 +2,26 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabase/client'
 
 export default function Reports() {
-  // --- FUNCIÓN AUXILIAR PARA FECHAS DINÁMICAS EXACTAS (ZONA HORARIA PERÚ) ---
-  const getPeruDateString = (dateObj) => {
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Lima',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    }).format(dateObj)
+  // --- FUNCIÓN DIRECTA LOCAL (EVITA DESFAZES UTC) ---
+  const getLocalDateString = (dateObj) => {
+    const year = dateObj.getFullYear()
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+    const day = String(dateObj.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
-  // Obtenemos la fecha de hoy real basada en la zona horaria local correcta
+  // Obtenemos la fecha de hoy real basada en el reloj local del sistema
   const todayDateObj = new Date()
-  const todayStr = getPeruDateString(todayDateObj)
+  const todayStr = getLocalDateString(todayDateObj)
 
-  // Obtenemos la fecha de ayer restando 1 día correctamente al objeto base
+  // Obtenemos la fecha de ayer restando 1 día limpiamente
   const yesterdayDateObj = new Date(todayDateObj)
   yesterdayDateObj.setDate(todayDateObj.getDate() - 1)
-  const yesterdayStr = getPeruDateString(yesterdayDateObj)
+  const yesterdayStr = getLocalDateString(yesterdayDateObj)
 
   // --- ESTADOS DE FILTRADO Y CALENDARIO ---
   const [activeTab, setActiveTab] = useState('month')
   const [startDate, setStartDate] = useState(() => {
-    // Primer día del mes actual respetando la zona local
     const parts = todayStr.split('-')
     return `${parts[0]}-${parts[1]}-01`
   })
@@ -93,9 +90,8 @@ export default function Reports() {
         const formatted = data.map(bet => {
           let dateStr = todayStr
           if (bet.created_at) {
-            // Convertir la fecha de Supabase a la zona horaria local para que coincida exactamente
             const betLocalDate = new Date(bet.created_at)
-            dateStr = getPeruDateString(betLocalDate)
+            dateStr = getLocalDateString(betLocalDate)
           }
 
           const sportInfo = bet.bet_legs && bet.bet_legs.length > 0 
@@ -232,14 +228,14 @@ export default function Reports() {
     } else if (tabKey === 'week') {
       const weekAgo = new Date(todayDateObj)
       weekAgo.setDate(todayDateObj.getDate() - 7)
-      setStartDate(getPeruDateString(weekAgo))
+      setStartDate(getLocalDateString(weekAgo))
       setEndDate(todayStr)
     } else if (tabKey === 'month') {
       const parts = todayStr.split('-')
       const firstDayMonth = `${parts[0]}-${parts[1]}-01`
       const lastDayObj = new Date(Number(parts[0]), Number(parts[1]), 0)
       setStartDate(firstDayMonth)
-      setEndDate(getPeruDateString(lastDayObj))
+      setEndDate(getLocalDateString(lastDayObj))
     } else if (tabKey === 'year') {
       const currentYear = todayStr.split('-')[0]
       setStartDate(`${currentYear}-01-01`)
@@ -280,7 +276,7 @@ export default function Reports() {
     const isProfitable = metrics.netProfit >= 0
     const formattedStartDate = startDate.split('-').reverse().join('/')
     const formattedEndDate = endDate.split('-').reverse().join('/')
-    const generationDate = new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', dateStyle: 'short', timeStyle: 'medium' }).format(new Date())
+    const generationDate = new Date().toLocaleString()
 
     const htmlContent = `
       <html>
