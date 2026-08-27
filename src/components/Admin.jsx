@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase/client'
 
+// Función para obtener la fecha actual en formato YYYY-MM-DD ajustada a Perú (UTC-5)
+const getPeruDateString = () => {
+  const now = new Date();
+  const peruTime = new Date(now.getTime() - (5 * 60 * 60 * 1000));
+  return peruTime.toISOString().split('T')[0];
+};
+
 export default function Admin() {
   // --- ESTADOS DE CONFIGURACIÓN Y ADMINISTRACIÓN ---
   const [userName, setUserName] = useState('Lenyn')
@@ -109,8 +116,8 @@ export default function Admin() {
         })))
       }
 
-      // 5. Cargar Cierres de Caja (Mapeando correctamente la hora local con closed_at)
-      const todayStr = new Date().toISOString().split('T')[0]
+      // 5. Cargar Cierres de Caja (Usando fecha de Perú para validar el día actual)
+      const todayStr = getPeruDateString()
       const { data: closures } = await supabase
         .from('daily_closures')
         .select('*')
@@ -309,13 +316,13 @@ export default function Admin() {
     setTournamentsList(tournamentsList.map(t => t.id === id ? { ...t, active: !t.active } : t))
   }
 
-  // Ejecutar Cierre de Caja Definitivo en Supabase registrando la hora exacta
+  // Ejecutar Cierre de Caja Definitivo en Supabase registrando la hora y fecha exacta de Perú
   const executeDailyClosure = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const todayStr = new Date().toISOString().split('T')[0]
+      const todayStr = getPeruDateString()
       const nowIso = new Date().toISOString()
 
       const { error } = await supabase

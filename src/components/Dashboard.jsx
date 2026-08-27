@@ -9,9 +9,8 @@ const getPeruTimestamp = () => {
 };
 
 export default function Dashboard({ user, onLogout }) {
-  // Estado para el control de la caja (Juego Responsable)
+  // Estado para el control de la caja sincronizado con Supabase
   const [isCajaClosed, setIsCajaClosed] = useState(false)
-  const [isHoveredEmergency, setIsHoveredEmergency] = useState(false)
   const [activeTooltip, setActiveTooltip] = useState(null)
 
   // Estados reales conectados a Supabase
@@ -47,6 +46,21 @@ export default function Dashboard({ user, onLogout }) {
       if (!currentUserId) {
         setLoading(false);
         return;
+      }
+
+      // Sincronizar estatus real de la caja de hoy desde Supabase (Zona horaria Perú)
+      const todayStr = new Date(new Date().getTime() - (5 * 60 * 60 * 1000)).toISOString().split('T')[0];
+      const { data: closureData } = await supabase
+        .from('daily_closures')
+        .select('*')
+        .eq('user_id', currentUserId)
+        .eq('closure_date', todayStr)
+        .maybeSingle();
+
+      if (closureData) {
+        setIsCajaClosed(true);
+      } else {
+        setIsCajaClosed(false);
       }
 
       // 2. Obtener Casas de Apuestas (Bookmakers) del usuario autenticado
@@ -100,7 +114,6 @@ export default function Dashboard({ user, onLogout }) {
       // 4. Procesar Dinámicamente el P&L Diario ajustando las fechas a la zona horaria de Perú (UTC-5)
       const daysMap = {};
       settledBets.forEach(bet => {
-        // Creamos la fecha y aplicamos el desfase de -5 horas para mantener consistencia con getPeruTimestamp
         const rawDate = new Date(bet.created_at);
         const peruDate = new Date(rawDate.getTime() - (5 * 60 * 60 * 1000));
         const dayStr = String(peruDate.getDate()).padStart(2, '0');
@@ -260,7 +273,7 @@ export default function Dashboard({ user, onLogout }) {
       {/* CONTENEDOR PRINCIPAL DEL DASHBOARD */}
       <main style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1400px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         
-        {/* 2. CABECERA DE ESTADO Y ALERTA DE DISCIPLINA */}
+        {/* 2. CABECERA DE ESTADO Y ALERTA DE DISCIPLINA (Sincronizada con Supabase) */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -288,27 +301,20 @@ export default function Dashboard({ user, onLogout }) {
             </div>
           </div>
 
-          <button
-            onClick={() => setIsCajaClosed(!isCajaClosed)}
-            onMouseEnter={() => setIsHoveredEmergency(true)}
-            onMouseLeave={() => setIsHoveredEmergency(false)}
-            style={{
-              backgroundColor: isCajaClosed ? 'rgba(34, 197, 94, 0.15)' : (isHoveredEmergency ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)'),
-              border: `1px solid ${isCajaClosed ? '#22c55e' : '#ef4444'}`,
-              color: isCajaClosed ? '#4ade80' : '#f87171',
-              padding: '10px 18px',
-              borderRadius: '10px',
-              fontSize: '13px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <span>🛡️</span> {isCajaClosed ? 'Reabrir Caja Diaria' : 'Cierre de Caja de Emergencia'}
-          </button>
+          <div style={{
+            backgroundColor: isCajaClosed ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+            border: `1px solid ${isCajaClosed ? '#ef4444' : '#22c55e'}`,
+            color: isCajaClosed ? '#f87171' : '#4ade80',
+            padding: '10px 18px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span>🛡️</span> {isCajaClosed ? 'Caja Protegida (Admin)' : 'Operaciones Habilitadas'}
+          </div>
         </div>
 
         {/* 3. TARJETAS DE KPIS FINANCIEROS GLOBALES */}
