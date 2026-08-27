@@ -218,7 +218,7 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
             </label>
             <input
               type="text"
-              placeholder="Ej: Lenyn"
+              placeholder="Ej: Inversor"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="input-animated"
@@ -245,7 +245,7 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
             <input
               type="email"
               required
-              placeholder="loartelenyn@gmail.com"
+              placeholder="correo@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input-animated"
