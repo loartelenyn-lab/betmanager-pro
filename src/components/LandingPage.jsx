@@ -20,35 +20,74 @@ export default function LandingPage({ onGoToLogin }) {
       overflowX: 'hidden'
     }}>
       
+      {/* ANIMACIONES Y EFECTOS VISUALES AVANZADOS */}
       <style>{`
         @keyframes pulseGlow {
-          0% { transform: scale(1); opacity: 0.15; }
-          50% { transform: scale(1.1); opacity: 0.25; }
-          100% { transform: scale(1); opacity: 0.15; }
+          0% { transform: translate(-50%, 0) scale(1); opacity: 0.25; }
+          50% { transform: translate(-50%, -20px) scale(1.15); opacity: 0.45; }
+          100% { transform: translate(-50%, 0) scale(1); opacity: 0.25; }
+        }
+        @keyframes floatOrb {
+          0% { transform: translate(0px, 0px) scale(1); }
+          50% { transform: translate(40px, -30px) scale(1.1); }
+          100% { transform: translate(0px, 0px) scale(1); }
         }
         @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; transform: translateY(28px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes shimmerBorder {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes glowPulseText {
+          0% { text-shadow: 0 0 15px rgba(56, 189, 248, 0.4), 0 0 30px rgba(37, 99, 235, 0.2); }
+          50% { text-shadow: 0 0 25px rgba(56, 189, 248, 0.8), 0 0 50px rgba(37, 99, 235, 0.5); }
+          100% { text-shadow: 0 0 15px rgba(56, 189, 248, 0.4), 0 0 30px rgba(37, 99, 235, 0.2); }
         }
         .animate-fade-in {
-          animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: fadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        .bg-glow-blob {
-          position: absolute;
-          width: 500px;
-          height: 500px;
-          background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(7, 9, 14, 0) 70%);
-          top: 10%;
-          left: 50%;
-          transform: translateX(-50%);
-          z-index: 0;
-          pointer-events: none;
-          animation: pulseGlow 6s infinite ease-in-out;
+        .glow-title-accent {
+          background: linear-gradient(135deg, #38bdf8 0%, #60a5fa 50%, #2563eb 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: glowPulseText 4s infinite ease-in-out;
+        }
+        .badge-pill-glow {
+          background: linear-gradient(90deg, rgba(37, 99, 235, 0.15), rgba(56, 189, 248, 0.25), rgba(37, 99, 235, 0.15));
+          background-size: 200% 200%;
+          animation: shimmerBorder 4s infinite linear;
+          box-shadow: 0 0 25px rgba(56, 189, 248, 0.25), inset 0 0 12px rgba(56, 189, 248, 0.15);
         }
       `}</style>
 
-      {/* Efecto de luz ambiental en el fondo */}
-      <div className="bg-glow-blob" />
+      {/* Luces de Fondo Ambientales Futuristas */}
+      <div style={{
+        position: 'absolute',
+        width: '650px',
+        height: '650px',
+        background: 'radial-gradient(circle, rgba(37, 99, 235, 0.3) 0%, rgba(56, 189, 248, 0.08) 45%, rgba(7, 9, 14, 0) 70%)',
+        top: '5%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 0,
+        pointerEvents: 'none',
+        animation: 'pulseGlow 7s infinite ease-in-out'
+      }} />
+
+      <div style={{
+        position: 'absolute',
+        width: '400px',
+        height: '400px',
+        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(7, 9, 14, 0) 70%)',
+        top: '20%',
+        right: '10%',
+        zIndex: 0,
+        pointerEvents: 'none',
+        animation: 'floatOrb 10s infinite ease-in-out'
+      }} />
 
       {/* 1. NAVEGACIÓN SUPERIOR (HEADER) */}
       <header style={{
@@ -64,7 +103,7 @@ export default function LandingPage({ onGoToLogin }) {
         backgroundColor: 'rgba(7, 9, 14, 0.85)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '28px', filter: 'drop-shadow(0 0 10px rgba(56, 189, 248, 0.5))' }}>🎯</span>
+          <span style={{ fontSize: '28px', filter: 'drop-shadow(0 0 12px rgba(56, 189, 248, 0.7))' }}>🎯</span>
           <span style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '0.5px', background: 'linear-gradient(135deg, #60a5fa 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             BetManager Pro
           </span>
@@ -99,7 +138,7 @@ export default function LandingPage({ onGoToLogin }) {
         </button>
       </header>
 
-      {/* 2. SECCIÓN HERO (PRINCIPAL CON EFECTOS Y LLAMADO A LA ACCIÓN) */}
+      {/* 2. SECCIÓN HERO CON ANIMACIONES MEJORADAS */}
       <main className="animate-fade-in" style={{
         flex: 1,
         display: 'flex',
@@ -107,54 +146,59 @@ export default function LandingPage({ onGoToLogin }) {
         alignItems: 'center',
         justifyContent: 'center',
         textAlign: 'center',
-        padding: '60px 20px',
-        maxWidth: '900px',
+        padding: '70px 20px',
+        maxWidth: '960px',
         margin: '0 auto',
         zIndex: 10,
         position: 'relative'
       }}>
         
-        {/* Badge superior llamativo con brillo */}
-        <div style={{
+        {/* Badge Flotante con Brillo Estilo Neón */}
+        <div className="badge-pill-glow" style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '8px',
-          padding: '8px 18px',
-          backgroundColor: 'rgba(37, 99, 235, 0.12)',
-          border: '1px solid rgba(56, 189, 248, 0.3)',
+          gap: '10px',
+          padding: '10px 22px',
+          border: '1px solid rgba(56, 189, 248, 0.5)',
           borderRadius: '50px',
-          fontSize: '13px',
-          fontWeight: '600',
-          color: '#60a5fa',
-          marginBottom: '24px',
-          boxShadow: '0 0 20px rgba(37, 99, 235, 0.15)'
+          fontSize: '13.5px',
+          fontWeight: '700',
+          color: '#38bdf8',
+          marginBottom: '30px',
+          backdropFilter: 'blur(12px)',
+          letterSpacing: '0.3px'
         }}>
-          <span>⚡</span> Plataforma de Gestión Financiera y Apuestas Profesionales
+          <span style={{ filter: 'drop-shadow(0 0 8px #38bdf8)' }}>⚡</span> 
+          <span>Plataforma de Gestión Financiera y Apuestas Profesionales</span>
         </div>
 
-        {/* Título Principal Impactante */}
+        {/* Título Principal */}
         <h1 style={{
-          fontSize: 'clamp(36px, 5vw, 64px)',
-          fontWeight: '800',
-          lineHeight: '1.15',
-          marginBottom: '24px',
-          letterSpacing: '-1px'
+          fontSize: 'clamp(40px, 5.5vw, 68px)',
+          fontWeight: '900',
+          lineHeight: '1.12',
+          marginBottom: '26px',
+          letterSpacing: '-1.5px',
+          color: '#ffffff',
+          filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.5))'
         }}>
-          Controla tu Bankroll como un <span style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Inversor Profesional</span>
+          Controla tu Bankroll como un <br />
+          <span className="glow-title-accent">Inversor Profesional</span>
         </h1>
 
-        {/* Subtítulo descriptivo */}
+        {/* Subtítulo Descriptivo */}
         <p style={{
-          fontSize: 'clamp(16px, 2vw, 18px)',
+          fontSize: 'clamp(16px, 2vw, 19px)',
           color: '#94a3b8',
-          lineHeight: '1.6',
-          marginBottom: '40px',
-          maxWidth: '700px'
+          lineHeight: '1.65',
+          marginBottom: '44px',
+          maxWidth: '740px',
+          fontWeight: '400'
         }}>
           Deja atrás las apuestas impulsivas. Audita tu rendimiento, calcula probabilidades implícitas en tiempo real, bloquea pérdidas con disciplina y lleva tu rentabilidad al siguiente nivel.
         </p>
 
-        {/* Botón de Acción Gigante con Efecto Hover Avanzado */}
+        {/* Botón de Acción Principal */}
         <button
           onClick={onGoToLogin}
           onMouseEnter={() => setIsHovered(true)}
@@ -163,30 +207,33 @@ export default function LandingPage({ onGoToLogin }) {
             backgroundColor: isHovered ? '#1d4ed8' : '#2563eb',
             color: '#ffffff',
             border: 'none',
-            padding: '16px 36px',
-            borderRadius: '14px',
+            padding: '18px 40px',
+            borderRadius: '16px',
             fontSize: '18px',
-            fontWeight: '700',
+            fontWeight: '800',
             cursor: 'pointer',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            transform: isHovered ? 'translateY(-3px)' : 'translateY(0)',
-            boxShadow: isHovered ? '0 12px 30px rgba(37, 99, 235, 0.6)' : '0 4px 15px rgba(37, 99, 235, 0.3)',
+            transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
+            boxShadow: isHovered 
+              ? '0 16px 35px rgba(37, 99, 235, 0.65), 0 0 25px rgba(56, 189, 248, 0.4)' 
+              : '0 6px 20px rgba(37, 99, 235, 0.35)',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px'
+            gap: '12px',
+            letterSpacing: '0.4px'
           }}
         >
           <span>Comenzar Ahora</span>
-          <span style={{ transition: 'transform 0.3s', transform: isHovered ? 'translateX(6px)' : 'translateX(0)' }}>→</span>
+          <span style={{ transition: 'transform 0.3s', transform: isHovered ? 'translateX(8px)' : 'translateX(0)', fontSize: '20px' }}>→</span>
         </button>
 
-        {/* 3. BLOQUE DE CARACTERÍSTICAS / CARDS FLOTANTES INTERACTIVAS */}
+        {/* 3. CARDS FLOTANTES */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: '20px',
+          gap: '22px',
           width: '100%',
-          marginTop: '80px',
+          marginTop: '85px',
           textAlign: 'left'
         }}>
           
@@ -195,18 +242,21 @@ export default function LandingPage({ onGoToLogin }) {
             onMouseEnter={() => setHoveredCard(1)}
             onMouseLeave={() => setHoveredCard(null)}
             style={{
-              backgroundColor: '#0f172a',
-              border: `1px solid ${hoveredCard === 1 ? '#38bdf8' : '#1e293b'}`,
-              padding: '28px',
-              borderRadius: '16px',
-              transition: 'all 0.3s ease',
-              transform: hoveredCard === 1 ? 'translateY(-6px)' : 'translateY(0)',
-              boxShadow: hoveredCard === 1 ? '0 15px 30px rgba(56, 189, 248, 0.15)' : '0 4px 20px rgba(0,0,0,0.2)'
+              backgroundColor: 'rgba(15, 23, 42, 0.85)',
+              backdropFilter: 'blur(16px)',
+              border: `1px solid ${hoveredCard === 1 ? '#38bdf8' : 'rgba(255, 255, 255, 0.08)'}`,
+              padding: '30px',
+              borderRadius: '18px',
+              transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+              transform: hoveredCard === 1 ? 'translateY(-8px)' : 'translateY(0)',
+              boxShadow: hoveredCard === 1 
+                ? '0 20px 40px rgba(56, 189, 248, 0.2), 0 0 15px rgba(56, 189, 248, 0.1)' 
+                : '0 4px 20px rgba(0,0,0,0.3)'
             }}
           >
-            <div style={{ fontSize: '28px', marginBottom: '14px', filter: 'drop-shadow(0 0 8px rgba(56, 189, 248, 0.3))' }}>📊</div>
-            <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '8px', color: '#f8fafc' }}>P&L y Reportes Avanzados</h3>
-            <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: '1.6' }}>Filtra por calendarios interactivos, evalúa tu ROI y audita ganancias milimétricamente.</p>
+            <div style={{ fontSize: '32px', marginBottom: '16px', filter: 'drop-shadow(0 0 12px rgba(56, 189, 248, 0.5))' }}>📊</div>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '10px', color: '#f8fafc' }}>P&L y Reportes Avanzados</h3>
+            <p style={{ fontSize: '13.5px', color: '#94a3b8', lineHeight: '1.6' }}>Filtra por calendarios interactivos, evalúa tu ROI y audita ganancias milimétricamente.</p>
           </div>
 
           {/* Card 2 */}
@@ -214,18 +264,21 @@ export default function LandingPage({ onGoToLogin }) {
             onMouseEnter={() => setHoveredCard(2)}
             onMouseLeave={() => setHoveredCard(null)}
             style={{
-              backgroundColor: '#0f172a',
-              border: `1px solid ${hoveredCard === 2 ? '#22c55e' : '#1e293b'}`,
-              padding: '28px',
-              borderRadius: '16px',
-              transition: 'all 0.3s ease',
-              transform: hoveredCard === 2 ? 'translateY(-6px)' : 'translateY(0)',
-              boxShadow: hoveredCard === 2 ? '0 15px 30px rgba(34, 197, 94, 0.15)' : '0 4px 20px rgba(0,0,0,0.2)'
+              backgroundColor: 'rgba(15, 23, 42, 0.85)',
+              backdropFilter: 'blur(16px)',
+              border: `1px solid ${hoveredCard === 2 ? '#22c55e' : 'rgba(255, 255, 255, 0.08)'}`,
+              padding: '30px',
+              borderRadius: '18px',
+              transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+              transform: hoveredCard === 2 ? 'translateY(-8px)' : 'translateY(0)',
+              boxShadow: hoveredCard === 2 
+                ? '0 20px 40px rgba(34, 197, 94, 0.2), 0 0 15px rgba(34, 197, 94, 0.1)' 
+                : '0 4px 20px rgba(0,0,0,0.3)'
             }}
           >
-            <div style={{ fontSize: '28px', marginBottom: '14px', filter: 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.3))' }}>🛡️</div>
-            <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '8px', color: '#f8fafc' }}>Juego Responsable</h3>
-            <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: '1.6' }}>Sistema de cierre de caja diario para proteger tu capital ante rachas negativas.</p>
+            <div style={{ fontSize: '32px', marginBottom: '16px', filter: 'drop-shadow(0 0 12px rgba(34, 197, 94, 0.5))' }}>🛡️</div>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '10px', color: '#f8fafc' }}>Juego Responsable</h3>
+            <p style={{ fontSize: '13.5px', color: '#94a3b8', lineHeight: '1.6' }}>Sistema de cierre de caja diario para proteger tu capital ante rachas negativas.</p>
           </div>
 
           {/* Card 3 */}
@@ -233,25 +286,28 @@ export default function LandingPage({ onGoToLogin }) {
             onMouseEnter={() => setHoveredCard(3)}
             onMouseLeave={() => setHoveredCard(null)}
             style={{
-              backgroundColor: '#0f172a',
-              border: `1px solid ${hoveredCard === 3 ? '#a855f7' : '#1e293b'}`,
-              padding: '28px',
-              borderRadius: '16px',
-              transition: 'all 0.3s ease',
-              transform: hoveredCard === 3 ? 'translateY(-6px)' : 'translateY(0)',
-              boxShadow: hoveredCard === 3 ? '0 15px 30px rgba(168, 85, 247, 0.15)' : '0 4px 20px rgba(0,0,0,0.2)'
+              backgroundColor: 'rgba(15, 23, 42, 0.85)',
+              backdropFilter: 'blur(16px)',
+              border: `1px solid ${hoveredCard === 3 ? '#a855f7' : 'rgba(255, 255, 255, 0.08)'}`,
+              padding: '30px',
+              borderRadius: '18px',
+              transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+              transform: hoveredCard === 3 ? 'translateY(-8px)' : 'translateY(0)',
+              boxShadow: hoveredCard === 3 
+                ? '0 20px 40px rgba(168, 85, 247, 0.2), 0 0 15px rgba(168, 85, 247, 0.1)' 
+                : '0 4px 20px rgba(0,0,0,0.3)'
             }}
           >
-            <div style={{ fontSize: '28px', marginBottom: '14px', filter: 'drop-shadow(0 0 8px rgba(168, 85, 247, 0.3))' }}>🧮</div>
-            <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '8px', color: '#f8fafc' }}>Calculadoras de Valor</h3>
-            <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: '1.6' }}>Herramientas de probabilidad implícita y arbitraje para detectar cuotas rentables.</p>
+            <div style={{ fontSize: '32px', marginBottom: '16px', filter: 'drop-shadow(0 0 12px rgba(168, 85, 247, 0.5))' }}>🧮</div>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '10px', color: '#f8fafc' }}>Calculadoras de Valor</h3>
+            <p style={{ fontSize: '13.5px', color: '#94a3b8', lineHeight: '1.6' }}>Herramientas de probabilidad implícita y arbitraje para detectar cuotas rentables.</p>
           </div>
 
         </div>
 
       </main>
 
-      {/* 4. FOOTER INFERIOR */}
+      {/* 4. FOOTER */}
       <footer style={{
         padding: '24px 48px',
         borderTop: '1px solid rgba(255, 255, 255, 0.08)',
