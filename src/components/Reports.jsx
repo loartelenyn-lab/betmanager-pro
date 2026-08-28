@@ -72,13 +72,14 @@ export default function Reports() {
           id,
           created_at,
           bookmaker_id,
-          bookmakers ( name ),
           bet_type,
           fund_type,
           stake,
           total_odds,
           profit_loss,
           status,
+          notes,
+          bookmakers!inner ( name ),
           bet_legs ( match_name, selection )
         `)
         .eq('user_id', user.id)

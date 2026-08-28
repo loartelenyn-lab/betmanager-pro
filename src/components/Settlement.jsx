@@ -31,7 +31,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
     if (bets && bets.length > 0) {
       setInternalBets(bets.map(b => ({
         ...b,
-        date: b.date && b.date !== 'Sin fecha' ? b.date : formatBogotaDate(b.created_at)
+        date: b.created_at ? formatBogotaDate(b.created_at) : (b.date && b.date !== 'Sin fecha' ? b.date : 'Sin fecha')
       })))
     }
   }, [bets])
@@ -59,7 +59,11 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
         .select(`
           *,
           bookmakers (name),
-          bet_legs (*)
+          bet_legs (
+            *,
+            sports (name),
+            leagues (name)
+          )
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -82,8 +86,8 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
           profit: Number(b.profit_loss || 0),
           cashout_amount: Number(b.cashout_amount || 0),
           legs: (b.bet_legs || []).map(l => ({
-            sport: 'Deporte',
-            league: 'Liga',
+            sport: l.sports?.name || 'Deporte',
+            league: l.leagues?.name || 'Liga',
             match: l.match_name,
             market: l.selection
           }))
@@ -98,105 +102,40 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
   const handleProcessSettlement = async (betId, newStatus, customProfit = null, customPayout = 0) => {
     const currentBet = internalBets.find(b => b.id === betId)
     if (!currentBet) return
-    const oldStatus = currentBet.status
 
-    const updated = internalBets.map(bet => {
-      if (bet.id === betId) {
-        let finalProfit = 0
-        let finalPayout = bet.payout
-
+    try {
+      if (userId) {
         if (newStatus === 'PENDING') {
-          finalProfit = 0
-          finalPayout = parseFloat((bet.stake * bet.odds).toFixed(2))
-        } else if (newStatus === 'WON') {
-          const effectivePayout = customPayout > 0 ? customPayout : bet.payout
-          finalPayout = effectivePayout
-          finalProfit = parseFloat((effectivePayout - bet.stake).toFixed(2))
-        } else if (newStatus === 'LOST') {
-          finalProfit = -bet.stake
-          finalPayout = 0
-        } else if (newStatus === 'CASHOUT') {
-          finalPayout = customPayout
-          finalProfit = parseFloat((customPayout - bet.stake).toFixed(2))
-        } else if (newStatus === 'VOID') {
-          finalProfit = 0
-          finalPayout = bet.stake
+          const { error } = await supabase
+            .from('bets')
+            .update({
+              status: 'PENDING',
+              profit_loss: 0,
+              cashout_amount: null
+            })
+            .eq('id', betId)
+            .eq('user_id', userId)
+
+          if (error) console.error('Error al reabrir apuesta:', error.message)
+        } else {
+          const { error } = await supabase.rpc('settle_bet', {
+            p_user_id: userId,
+            p_bet_id: betId,
+            p_new_status: newStatus,
+            p_cashout_amount: newStatus === 'CASHOUT' ? customPayout : null
+          })
+
+          if (error) console.error('Error en RPC settle_bet:', error.message)
         }
 
-        return {
-          ...bet,
-          status: newStatus,
-          profit: finalProfit,
-          payout: finalPayout,
-          cashout_amount: newStatus === 'CASHOUT' ? customPayout : (newStatus === 'PENDING' ? 0 : bet.cashout_amount)
-        }
+        await fetchSupabaseData()
       }
-      return bet
-    })
-
-    setInternalBets(updated)
-
-    if (userId) {
-      const targetBet = updated.find(b => b.id === betId)
-      
-      await supabase
-        .from('bets')
-        .update({
-          status: newStatus,
-          profit_loss: targetBet.profit,
-          potential_payout: targetBet.payout,
-          cashout_amount: newStatus === 'CASHOUT' ? customPayout : (newStatus === 'PENDING' ? null : currentBet.cashout_amount)
-        })
-        .eq('id', betId)
-        .eq('user_id', userId)
-
-      try {
-        const bookmakerId = targetBet.bookmaker_id;
-        
-        if (bookmakerId) {
-          const { data: bmData, error: bmGetError } = await supabase
-            .from('bookmakers')
-            .select('current_balance')
-            .eq('id', bookmakerId)
-            .single()
-
-          if (!bmGetError && bmData) {
-            const currentBal = Number(bmData.current_balance || 0);
-            let balanceAdjustment = 0;
-
-            if (newStatus === 'PENDING') {
-              if (oldStatus === 'WON') {
-                balanceAdjustment = -currentBet.payout;
-              } else if (oldStatus === 'CASHOUT') {
-                balanceAdjustment = -currentBet.cashout_amount;
-              } else if (oldStatus === 'VOID') {
-                balanceAdjustment = -currentBet.stake;
-              }
-            } else {
-              if (newStatus === 'WON') {
-                balanceAdjustment = targetBet.payout; 
-              } else if (newStatus === 'CASHOUT') {
-                balanceAdjustment = customPayout; 
-              } else if (newStatus === 'VOID') {
-                balanceAdjustment = targetBet.stake; 
-              }
-            }
-
-            const newBalance = currentBal + balanceAdjustment;
-
-            await supabase
-              .from('bookmakers')
-              .update({ current_balance: newBalance })
-              .eq('id', bookmakerId);
-          }
-        }
-      } catch (balanceErr) {
-        console.error('Error al actualizar el balance de la casa:', balanceErr.message);
-      }
+    } catch (err) {
+      console.error('Error al procesar liquidación:', err.message)
     }
 
     if (onSettleBet) {
-      onSettleBet(updated)
+      onSettleBet(internalBets)
     }
     setModalConfig({ open: false, type: null, bet: null })
     setModalInputVal('')
@@ -220,7 +159,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
   })
 
   const pendingBets = filteredBets.filter(b => b.status === 'PENDING')
-  const settledBets = filteredBets.filter(b => b.status !== 'PENDING').reverse()
+  const settledBets = filteredBets.filter(b => b.status !== 'PENDING')
 
   return (
     <div style={{

@@ -55,10 +55,11 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
 
       if (!currentUserId) return;
 
+      // CORRECCIÓN 1: Se eliminó .eq('is_active', true) y se filtró por user_id
       const { data: bData, error: bError } = await supabase
         .from('bookmakers')
         .select('*')
-        .eq('is_active', true);
+        .eq('user_id', currentUserId);
       
       if (bError) console.error("Error en casas:", bError);
       if (bData && bData.length > 0) {
@@ -68,8 +69,16 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
         setBookmakersList([]);
       }
 
-      const { data: sData, error: sError } = await supabase.from('sports').select('*');
-      const { data: lData, error: lError } = await supabase.from('leagues').select('*');
+      // CORRECCIÓN 2: Se agregaron filtros por user_id para sports y leagues
+      const { data: sData, error: sError } = await supabase
+        .from('sports')
+        .select('*')
+        .eq('user_id', currentUserId);
+
+      const { data: lData, error: lError } = await supabase
+        .from('leagues')
+        .select('*')
+        .eq('user_id', currentUserId);
       
       if (sError) console.error("Error en deportes:", sError);
       if (lError) console.error("Error en ligas:", lError);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../supabase/client' // 👈 Importación correcta del cliente de Supabase
+import { supabase } from '../supabase/client'
 
 export default function Bankroll({ 
   userId,
@@ -29,11 +29,12 @@ export default function Bankroll({
 
   const fetchSupabaseData = async () => {
     try {
-      // 1. Obtener casas de apuestas del usuario
+      // 1. Obtener casas de apuestas activas del usuario
       const { data: bmData, error: bmError } = await supabase
         .from('bookmakers')
-        .select('*')
+        .select('id, name, current_balance')
         .eq('user_id', userId)
+        .order('id', { ascending: true })
 
       if (bmError) throw bmError
       
@@ -42,30 +43,33 @@ export default function Bankroll({
         mappedBooks = bmData.map(b => ({
           id: b.id,
           name: b.name,
-          balance: Number(b.current_balance)
+          balance: Number(b.current_balance) || 0
         }))
         setBooks(mappedBooks)
-        setForm(prev => ({ ...prev, bookmaker: mappedBooks[0]?.name || '' }))
+        setForm(prev => ({ 
+          ...prev, 
+          bookmaker: prev.bookmaker || mappedBooks[0]?.name || '' 
+        }))
       }
 
-      // 2. Obtener transacciones evitando cruces complejos para prevenir errores 406
+      // 2. Obtener historial de transacciones ordenado por fecha descendente
       const { data: txData, error: txError } = await supabase
         .from('transactions')
-        .select('*')
+        .select('id, type, amount, notes, created_at, bookmaker_id')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
       if (txError) throw txError
 
       if (txData && txData.length > 0) {
-        // Mapeamos cruzando el nombre de la casa desde el estado local de bookmakers
         const mappedTx = txData.map(t => {
           const foundBook = mappedBooks.find(b => b.id === t.bookmaker_id)
           return {
             id: t.id,
+            bookmaker_id: t.bookmaker_id,
             type: t.type === 'DEPOSIT' ? 'DEPÓSITO' : 'RETIRO',
             bookmaker: foundBook?.name || 'Casa Externa',
-            amount: Number(t.amount),
+            amount: Number(t.amount) || 0,
             method: t.notes || 'Estándar',
             date: new Date(t.created_at).toLocaleString('es-PE', {
               day: '2-digit',
@@ -115,11 +119,15 @@ export default function Bankroll({
     }
 
     const targetBook = books.find(b => b.name === form.bookmaker)
+    if (!targetBook) {
+      setAlertMsg({ text: '⚠️ Selecciona una casa de apuestas válida.', type: 'error' })
+      return
+    }
 
     if (form.type === 'RETIRO') {
-      if (!targetBook || targetBook.balance < numericAmount) {
+      if (targetBook.balance < numericAmount) {
         setAlertMsg({ 
-          text: `❌ Saldo insuficiente en ${form.bookmaker}. Saldo actual disponible: S/ ${targetBook ? targetBook.balance.toFixed(2) : '0.00'}`, 
+          text: `❌ Saldo insuficiente en ${form.bookmaker}. Saldo actual disponible: S/ ${targetBook.balance.toFixed(2)}`, 
           type: 'error' 
         })
         return
@@ -127,12 +135,13 @@ export default function Bankroll({
     }
 
     const dbType = form.type === 'DEPÓSITO' ? 'DEPOSIT' : 'WITHDRAWAL'
-    const newBalance = form.type === 'DEPÓSITO' ? targetBook.balance + numericAmount : targetBook.balance - numericAmount
+    const newBalance = form.type === 'DEPÓSITO' 
+      ? targetBook.balance + numericAmount 
+      : targetBook.balance - numericAmount
 
-    // PERSISTENCIA EN SUPABASE
-    if (userId && targetBook) {
+    if (userId) {
       try {
-        // 1. Insertar transacción
+        // 1. Insertar transacción en Supabase (coincidiendo exactamente con el schema SQL)
         const { data: insertedTx, error: txError } = await supabase
           .from('transactions')
           .insert({
@@ -147,20 +156,22 @@ export default function Bankroll({
 
         if (txError) throw txError
 
-        // 2. Actualizar saldo del bookmaker en la base de datos
+        // 2. Actualizar el saldo actual de la casa de apuestas (bookmaker)
         const { error: bmError } = await supabase
           .from('bookmakers')
           .update({ current_balance: newBalance })
           .eq('id', targetBook.id)
+          .eq('user_id', userId)
 
         if (bmError) throw bmError
 
-        // Actualizar estados locales tras éxito en BD
+        // Actualización local de estados tras confirmación de Supabase
         const updatedBooks = books.map(b => b.id === targetBook.id ? { ...b, balance: newBalance } : b)
         setBooks(updatedBooks)
 
         const newTx = {
           id: insertedTx.id,
+          bookmaker_id: targetBook.id,
           type: form.type,
           bookmaker: targetBook.name,
           amount: numericAmount,
@@ -188,27 +199,57 @@ export default function Bankroll({
 
       } catch (error) {
         console.error('Error al guardar en la base de datos:', error.message)
-        setAlertMsg({ text: '❌ Error al procesar la transacción en la base de datos.', type: 'error' })
+        setAlertMsg({ text: `❌ Error al procesar la transacción: ${error.message}`, type: 'error' })
       }
     }
   }
 
   const handleDeleteTransaction = async (id) => {
-    if (window.confirm('¿Estás seguro de auditar y eliminar este registro financiero?')) {
+    if (window.confirm('¿Estás seguro de auditar y eliminar este registro financiero? Se reajustará el saldo de la casa.')) {
       try {
-        const { error } = await supabase
+        const txToDelete = transactions.find(t => t.id === id)
+        if (!txToDelete) return
+
+        // 1. Eliminar transacción en Supabase
+        const { error: deleteError } = await supabase
           .from('transactions')
           .delete()
           .eq('id', id)
+          .eq('user_id', userId)
 
-        if (error) throw error
+        if (deleteError) throw deleteError
+
+        // 2. Reconciliar saldo de la casa tras la eliminación
+        const targetBook = books.find(b => b.id === txToDelete.bookmaker_id || b.name === txToDelete.bookmaker)
+        let updatedBooks = books
+
+        if (targetBook) {
+          const adjustedBalance = txToDelete.type === 'DEPÓSITO'
+            ? targetBook.balance - txToDelete.amount
+            : targetBook.balance + txToDelete.amount
+
+          const { error: bmError } = await supabase
+            .from('bookmakers')
+            .update({ current_balance: adjustedBalance })
+            .eq('id', targetBook.id)
+
+          if (!bmError) {
+            updatedBooks = books.map(b => b.id === targetBook.id ? { ...b, balance: adjustedBalance } : b)
+            setBooks(updatedBooks)
+          }
+        }
 
         const filtered = transactions.filter(t => t.id !== id)
         setTransactions(filtered)
-        setAlertMsg({ text: '🗑️ Transacción eliminada del registro.', type: 'success' })
+
+        if (onTransactionComplete) {
+          onTransactionComplete({ transactions: filtered, bookmakers: updatedBooks })
+        }
+
+        setAlertMsg({ text: '🗑️ Transacción eliminada y saldo reconciliado correctamente.', type: 'success' })
       } catch (error) {
-        console.error('Error al eliminar:', error.message)
-        setAlertMsg({ text: '❌ No se pudo eliminar la transacción.', type: 'error' })
+        console.error('Error al eliminar transacción:', error.message)
+        setAlertMsg({ text: '❌ No se pudo eliminar la transacción de la base de datos.', type: 'error' })
       }
     }
   }
@@ -230,10 +271,6 @@ export default function Bankroll({
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes pulseGlow {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 0.8; }
-        }
         .pro-card {
           background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.6) 100%);
           backdrop-filter: blur(12px);
@@ -254,7 +291,7 @@ export default function Bankroll({
           filter: brightness(1.15);
           box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
         }
-        .input-pro:focus {
+        .input-pro:focus, select:focus {
           border-color: #38bdf8 !important;
           box-shadow: 0 0 16px rgba(56, 189, 248, 0.25) !important;
           background-color: rgba(15, 23, 42, 0.9) !important;
@@ -296,6 +333,7 @@ export default function Bankroll({
         </div>
       )}
 
+      {/* TARJETAS KPI */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
         
         <div className="pro-card" style={{ borderRadius: '18px', padding: '22px', position: 'relative', overflow: 'hidden' }}>
@@ -339,8 +377,8 @@ export default function Bankroll({
 
       </div>
 
+      {/* FORMULARIO DE REGISTRO DE TRANSACCIONES */}
       <div className="pro-card" style={{ borderRadius: '22px', padding: '26px', marginBottom: '36px' }}>
-        
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
             ⚡ Registrar Nueva Transacción Financiera
@@ -444,6 +482,7 @@ export default function Bankroll({
         </form>
       </div>
 
+      {/* AUDITORÍA Y HISTORIAL */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>

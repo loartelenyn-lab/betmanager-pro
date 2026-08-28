@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { supabase } from '../supabase/client'
 
 export default function Calculators() {
   // Estado para controlar las pestañas activas ('implied', 'value', 'arbitrage')
@@ -243,7 +242,7 @@ export default function Calculators() {
 
             <div style={{ marginTop: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '800', color: '#94a3b8', marginBottom: '6px' }}>
-                <span>SEMAFORO DE VALOR</span>
+                <span>SEMÁFORO DE VALOR</span>
                 <span style={{ color: impliedProbability > 60 ? '#f87171' : '#4ade80' }}>
                   {impliedProbability > 60 ? 'Cuota Baja / Alta Probabilidad' : 'Cuota Alta / Oportunidad'}
                 </span>
