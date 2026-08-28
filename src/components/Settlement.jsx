@@ -56,6 +56,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
           payout: Number(b.potential_payout),
           status: b.status,
           date: new Date(b.created_at).toLocaleString('es-PE', {
+            timeZone: 'America/Lima',
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',

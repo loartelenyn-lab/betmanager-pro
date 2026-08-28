@@ -2,13 +2,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabase/client'
 
 export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
-  // --- FUNCIÓN AUXILIAR PARA HUSO HORARIO DE SUDAMÉRICA (PERÚ UTC-5) ---
-  const getPeruTimestamp = () => {
-    const now = new Date()
-    const peruTime = new Date(now.getTime() - (5 * 60 * 60 * 1000))
-    return peruTime.toISOString()
-  }
-
   // Estado general del formulario
   const [betType, setBetType] = useState('Simple') // Simple | Parlay | BetBuilder
   const [bookmakersList, setBookmakersList] = useState([])
@@ -169,7 +162,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
 
   const potentialPayout = (numericStake * effectiveOdds).toFixed(2)
 
-  // Manejo del Envío (Corregido con Auth de respaldo y marca de tiempo de Sudamérica)
+  // Manejo del Envío (Corregido: no realiza llamadas innecesarias a update ni modifica created_at)
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (isCajaClosed) return
@@ -188,7 +181,6 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
     try {
       setLoading(true)
 
-      // Garantizar la identidad del usuario para el RPC
       let currentUserId = user?.id;
       if (!currentUserId) {
         const { data: authData } = await supabase.auth.getUser();
@@ -196,7 +188,6 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
       }
       if (!currentUserId) throw new Error("Usuario no autenticado");
 
-      // Preparar las selecciones en formato JSONB
       let compiledLegs = []
       if (betType === 'BetBuilder') {
         compiledLegs = bbMarkets.map(m => ({
@@ -216,8 +207,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
         }))
       }
 
-      // Llamada a la función RPC pasando opcionalmente el timestamp ajustado si tu función lo soporta,
-      // o asegurando el registro de fecha local.
+      // La función RPC registra el ticket. No se realiza ningún UPDATE a created_at posteriormente.
       const { data, error } = await supabase.rpc('register_bet_transaction', {
         p_user_id: currentUserId,
         p_bookmaker_id: Number(selectedBookmakerId),
@@ -232,16 +222,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
 
       if (error) throw error;
 
-      // Actualizamos adicionalmente el created_at de la última apuesta insertada si la función RPC usa un NOW() interno por defecto
       if (data && data.success) {
-        // Corrección de seguridad para alinear la última apuesta al huso horario de Perú
-        await supabase
-          .from('bets')
-          .update({ created_at: getPeruTimestamp() })
-          .eq('user_id', currentUserId)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
         setSuccessMessage(true)
         if (onSaveBet) onSaveBet(data)
 
