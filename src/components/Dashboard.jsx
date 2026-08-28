@@ -13,8 +13,6 @@ export default function Dashboard({ user, onLogout }) {
   const [isCajaClosed, setIsCajaClosed] = useState(false)
   const [activeTooltip, setActiveTooltip] = useState(null)
   const [activeTooltipChart2, setActiveTooltipChart2] = useState(null)
-  const [activeTooltipChart3, setActiveTooltipChart3] = useState(null)
-  const [activeTooltipChart4, setActiveTooltipChart4] = useState(null)
 
   // Estados reales conectados a Supabase
   const [loading, setLoading] = useState(true)
@@ -24,8 +22,6 @@ export default function Dashboard({ user, onLogout }) {
   const [dailyData, setDailyData] = useState([])
   const [cumulativeBankrollData, setCumulativeBankrollData] = useState([])
   const [betTypeStats, setBetTypeStats] = useState([])
-  const [monthlyVolumeData, setMonthlyVolumeData] = useState([])
-  const [oddsEfficiencyData, setOddsEfficiencyData] = useState([])
   
   const [kpis, setKpis] = useState({
     bankroll: '0.00',
@@ -98,8 +94,8 @@ export default function Dashboard({ user, onLogout }) {
       const totalStaked = settledBets.reduce((acc, b) => acc + Number(b.stake || 0), 0);
       const wonCount = settledBets.filter(b => b.status === 'WON').length;
       
-      const calculatedRoi = totalStaked > 0 ? ((totalProfit / totalStaked) * 100).toFixed(2) : '0.00';
-      const winRateVal = settledBets.length > 0 ? ((wonCount / settledBets.length) * 100).toFixed(2) : '0.00';
+      const calculatedRoi = totalStaked > 0 ? ((totalProfit / totalStaked) * 100).toFixed(1) : '0.0';
+      const winRateVal = settledBets.length > 0 ? ((wonCount / settledBets.length) * 100).toFixed(1) : '0.0';
       const avgStakeVal = allBets.length > 0 ? (allBets.reduce((acc, b) => acc + Number(b.stake || 0), 0) / allBets.length).toFixed(2) : '0.00';
 
       setKpis({
@@ -111,7 +107,7 @@ export default function Dashboard({ user, onLogout }) {
         avgStake: avgStakeVal
       });
 
-      // 4. Procesar P&L Diario (Con volúmenes corregidos a Máximo 2 Decimales exactos)
+      // 4. Procesar P&L Diario
       const daysMap = {};
       settledBets.forEach(bet => {
         const rawDate = new Date(bet.created_at);
@@ -127,18 +123,14 @@ export default function Dashboard({ user, onLogout }) {
       });
 
       const processedDays = Object.keys(daysMap).length > 0 
-        ? Object.values(daysMap).sort((a, b) => a.day.localeCompare(b.day)).map(d => ({
-            ...d,
-            profit: Number(d.profit.toFixed(2)),
-            volume: Number(d.volume.toFixed(2))
-          }))
+        ? Object.values(daysMap).sort((a, b) => a.day.localeCompare(b.day))
         : [
             { day: '01', profit: 0, volume: 0, bets: 0 },
             { day: '05', profit: 0, volume: 0, bets: 0 },
             { day: '10', profit: 0, volume: 0, bets: 0 },
             { day: '15', profit: 0, volume: 0, bets: 0 },
             { day: '20', profit: 0, volume: 0, bets: 0 },
-            { day: '28', profit: 0.50, volume: 1.50, bets: 5 },
+            { day: '28', profit: 0.5, volume: 0.3, bets: 1 },
           ];
 
       setDailyData(processedDays);
@@ -150,7 +142,7 @@ export default function Dashboard({ user, onLogout }) {
         return {
           day: item.day,
           bankroll: Number(runningBankroll.toFixed(2)),
-          profit: Number(item.profit.toFixed(2))
+          profit: item.profit
         };
       });
       setCumulativeBankrollData(bankrollTrend);
@@ -168,38 +160,11 @@ export default function Dashboard({ user, onLogout }) {
       const totalSettledCount = settledBets.length || 1;
       const typeStatsArray = Object.keys(typeMap).map(type => {
         const count = typeMap[type].total;
-        const percentage = Number(((count / totalSettledCount) * 100).toFixed(2));
-        const winRate = count > 0 ? Number(((typeMap[type].won / count) * 100).toFixed(2)) : 0;
+        const percentage = Math.round((count / totalSettledCount) * 100);
+        const winRate = count > 0 ? Math.round((typeMap[type].won / count) * 100) : 0;
         return { type, count, percentage, winRate };
       });
       setBetTypeStats(typeStatsArray);
-
-      // 7. GRÁFICO NUEVO 1: Volumen de Inversión Semanal / Periódico
-      const volumeTrend = processedDays.map(item => ({
-        day: item.day,
-        volume: Number(item.volume.toFixed(2))
-      }));
-      setMonthlyVolumeData(volumeTrend);
-
-      // 8. GRÁFICO NUEVO 2: Eficiencia por Rangos de Cuotas
-      const oddsRanges = { '1.20 - 1.50': { count: 0, won: 0 }, '1.51 - 2.00': { count: 0, won: 0 }, '2.01 - 3.00': { count: 0, won: 0 }, '+3.00': { count: 0, won: 0 } };
-      settledBets.forEach(bet => {
-        const odds = Number(bet.total_odds || 1);
-        let rangeKey = '+3.00';
-        if (odds >= 1.20 && odds <= 1.50) rangeKey = '1.20 - 1.50';
-        else if (odds > 1.50 && odds <= 2.00) rangeKey = '1.51 - 2.00';
-        else if (odds > 2.00 && odds <= 3.00) rangeKey = '2.01 - 3.00';
-
-        oddsRanges[rangeKey].count += 1;
-        if (bet.status === 'WON') oddsRanges[rangeKey].won += 1;
-      });
-
-      const oddsEfficiencyArray = Object.keys(oddsRanges).map(range => {
-        const total = oddsRanges[range].count;
-        const successRate = total > 0 ? Number(((oddsRanges[range].won / total) * 100).toFixed(2)) : 0;
-        return { range, total, successRate };
-      });
-      setOddsEfficiencyData(oddsEfficiencyArray);
 
     } catch (error) {
       console.error('Error general al cargar datos del Dashboard:', error.message);
@@ -226,8 +191,8 @@ export default function Dashboard({ user, onLogout }) {
       flexDirection: 'column',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       boxSizing: 'border-box',
-      overflowX: 'hidden',
-      overflowY: 'auto'
+      overflowX: 'hidden', // PREVIENE CUALQUIER SCROLL HORIZONTAL
+      overflowY: 'auto'    // ASEGURA SCROLL VERTICAL FLUIDO
     }}>
       
       <style>{`
@@ -249,10 +214,6 @@ export default function Dashboard({ user, onLogout }) {
           0% { border-color: rgba(56, 189, 248, 0.2); }
           50% { border-color: rgba(168, 85, 247, 0.5); }
           100% { border-color: rgba(56, 189, 248, 0.2); }
-        }
-        @keyframes shimmerEffect {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
         }
         .greeting-badge {
           animation: fadeInSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards, pulseGlow 4s infinite ease-in-out;
@@ -293,7 +254,7 @@ export default function Dashboard({ user, onLogout }) {
         width: '100%',
         boxSizing: 'border-box',
         display: 'flex',
-        flexWrap: 'wrap',
+        flexWrap: 'wrap', // Permite que los elementos bajen si no hay espacio
         gap: '15px',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -494,12 +455,12 @@ export default function Dashboard({ user, onLogout }) {
             display: 'flex', 
             flexDirection: 'column', 
             gap: '20px', 
-            flex: '2 1 600px',
-            minWidth: 0,
+            flex: '2 1 600px', // Ocupa 2/3 pero es adaptable
+            minWidth: 0,       // Previene desborde de contenido interno
             boxSizing: 'border-box'
           }}>
 
-            {/* GRÁFICO 1: EVOLUCIÓN DE P&L DIARIO (Volúmenes ajustados a máximo 2 decimales según requerimiento) */}
+            {/* GRÁFICO 1: EVOLUCIÓN DE P&L DIARIO */}
             <div style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
@@ -605,12 +566,12 @@ export default function Dashboard({ user, onLogout }) {
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
                             <span style={{ color: '#94a3b8' }}>{isPositive ? 'Ganancia:' : 'Pérdida:'}</span>
                             <span style={{ fontWeight: '700', color: isPositive ? '#4ade80' : '#f87171' }}>
-                              {isPositive ? `+S/ ${item.profit.toFixed(2)}` : `-S/ ${Math.abs(item.profit).toFixed(2)}`}
+                              {isPositive ? `+S/ ${item.profit}` : `-S/ ${Math.abs(item.profit)}`}
                             </span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
                             <span style={{ color: '#94a3b8' }}>Volumen:</span>
-                            <span style={{ fontWeight: '600' }}>S/ {item.volume.toFixed(2)}</span>
+                            <span style={{ fontWeight: '600' }}>S/ {item.volume}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
                             <span style={{ color: '#94a3b8' }}>Boletos:</span>
@@ -837,161 +798,6 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* GRÁFICO NUEVO 4: VOLUMEN DE INVERSIÓN (AGREGADO CON DISEÑO, COLORES Y ANIMACIONES) */}
-            <div className="animated-panel chart-card-animated" style={{
-              backgroundColor: '#0f172a',
-              border: '1px solid rgba(74, 222, 128, 0.2)',
-              borderRadius: '16px',
-              padding: '28px',
-              boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '20px',
-              boxSizing: 'border-box'
-            }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: '#4ade80' }}>💰</span> Volumen de Inversión Diario
-                  </h3>
-                  <p style={{ fontSize: '12.5px', color: '#94a3b8' }}>Monto total apostado por jornada con control de riesgo</p>
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: 'rgba(74, 222, 128, 0.12)', color: '#4ade80', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(74, 222, 128, 0.3)' }}>
-                  Flujo de Caja ⚡
-                </span>
-              </div>
-
-              <div style={{
-                height: '180px',
-                display: 'flex',
-                alignItems: 'flex-end',
-                justifyContent: 'space-between',
-                padding: '0 20px 20px 20px',
-                backgroundColor: 'rgba(7, 9, 14, 0.6)',
-                borderRadius: '12px',
-                border: '1px solid rgba(255,255,255,0.05)',
-                position: 'relative'
-              }}>
-                {monthlyVolumeData.map((item, idx) => {
-                  const maxVol = Math.max(...monthlyVolumeData.map(d => d.volume), 10);
-                  const heightPercent = Math.max((item.volume / maxVol) * 75, 10);
-
-                  return (
-                    <div key={idx}
-                      onMouseEnter={() => setActiveTooltipChart3(item)}
-                      onMouseLeave={() => setActiveTooltipChart3(null)}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'flex-end',
-                        height: '100%',
-                        flex: 1,
-                        position: 'relative',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {activeTooltipChart3 === item && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '-45px',
-                          backgroundColor: '#0f172a',
-                          border: '1px solid #4ade80',
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          fontSize: '11px',
-                          color: '#ffffff',
-                          whiteSpace: 'nowrap',
-                          boxShadow: '0 10px 25px rgba(74, 222, 128, 0.4)',
-                          zIndex: 10
-                        }}>
-                          <strong>Día {item.day}:</strong> S/ {item.volume.toFixed(2)}
-                        </div>
-                      )}
-
-                      <div style={{
-                        width: '14px',
-                        height: `${heightPercent}%`,
-                        background: 'linear-gradient(180deg, #4ade80 0%, #0284c7 100%)',
-                        borderRadius: '6px 6px 0 0',
-                        boxShadow: '0 0 15px rgba(74, 222, 128, 0.4)',
-                        transition: 'all 0.3s ease',
-                        transform: activeTooltipChart3 === item ? 'scaleX(1.3)' : 'scaleX(1)'
-                      }} />
-                      <span style={{ fontSize: '11px', color: '#64748b', marginTop: '8px' }}>Día {item.day}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* GRÁFICO NUEVO 5: EFICIENCIA POR RANGOS DE CUOTAS (AGREGADO CON DISEÑO, COLORES Y ANIMACIONES) */}
-            <div className="animated-panel chart-card-animated" style={{
-              backgroundColor: '#0f172a',
-              border: '1px solid rgba(244, 63, 94, 0.2)',
-              borderRadius: '16px',
-              padding: '28px',
-              boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '20px',
-              boxSizing: 'border-box'
-            }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: '#f43f5e' }}>📊</span> Eficiencia por Rango de Cuotas
-                  </h3>
-                  <p style={{ fontSize: '12.5px', color: '#94a3b8' }}>Tasa de acierto y volumen según la cuota seleccionada</p>
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: 'rgba(244, 63, 94, 0.12)', color: '#f43f5e', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(244, 63, 94, 0.3)' }}>
-                  Rendimiento de Cuotas 🎯
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {oddsEfficiencyData.map((item, idx) => {
-                  const colors = [
-                    { gradient: 'linear-gradient(90deg, #38bdf8 0%, #0284c7 100%)', shadow: 'rgba(56, 189, 248, 0.4)' },
-                    { gradient: 'linear-gradient(90deg, #a855f7 0%, #7c3aed 100%)', shadow: 'rgba(168, 85, 247, 0.4)' },
-                    { gradient: 'linear-gradient(90deg, #4ade80 0%, #059669 100%)', shadow: 'rgba(74, 222, 128, 0.4)' },
-                    { gradient: 'linear-gradient(90deg, #f43f5e 0%, #e11d48 100%)', shadow: 'rgba(244, 63, 94, 0.4)' }
-                  ];
-                  const styleColor = colors[idx % colors.length];
-
-                  return (
-                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', fontSize: '12.5px', fontWeight: '700' }}>
-                        <span style={{ color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: styleColor.gradient }}></span>
-                          Cuotas {item.range} ({item.total} boletos)
-                        </span>
-                        <span style={{ color: '#94a3b8' }}>
-                          Efectividad: <strong style={{ color: '#4ade80' }}>{item.successRate}%</strong>
-                        </span>
-                      </div>
-                      <div style={{
-                        width: '100%',
-                        height: '10px',
-                        backgroundColor: '#07090e',
-                        borderRadius: '20px',
-                        overflow: 'hidden',
-                        border: '1px solid rgba(255,255,255,0.05)'
-                      }}>
-                        <div className="progress-bar-fill" style={{
-                          width: `${Math.max(item.successRate, 5)}%`,
-                          height: '100%',
-                          background: styleColor.gradient,
-                          borderRadius: '20px',
-                          boxShadow: `0 0 12px ${styleColor.shadow}`
-                        }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
           </div>
 
           {/* COLUMNA DERECHA */}
@@ -999,7 +805,7 @@ export default function Dashboard({ user, onLogout }) {
             display: 'flex', 
             flexDirection: 'column', 
             gap: '20px', 
-            flex: '1 1 300px',
+            flex: '1 1 300px', // Ocupa 1/3 pero se adapta al 100% si falta espacio
             minWidth: 0, 
             boxSizing: 'border-box'
           }}>
@@ -1124,7 +930,7 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* 3. ÚLTIMAS APUESTAS */}
+            {/* 3. ÚLTIMAS APUESTAS (DEBAJO DE PENDIENTES) */}
             <div className="animated-panel" style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
@@ -1237,7 +1043,7 @@ const kpiCardStyle = {
   transition: 'all 0.3s ease',
   cursor: 'pointer',
   boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-  boxSizing: 'border-box'
+  boxSizing: 'border-box' // PREVIENE DESBORDES INTERNOS
 }
 
 const kpiLabelStyle = {
