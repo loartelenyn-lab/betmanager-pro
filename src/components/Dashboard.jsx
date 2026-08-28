@@ -190,7 +190,9 @@ export default function Dashboard({ user, onLogout }) {
       display: 'flex',
       flexDirection: 'column',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      overflowX: 'hidden', // PREVIENE CUALQUIER SCROLL HORIZONTAL
+      overflowY: 'auto'    // ASEGURA SCROLL VERTICAL FLUIDO
     }}>
       
       <style>{`
@@ -247,9 +249,13 @@ export default function Dashboard({ user, onLogout }) {
         }
       `}</style>
 
-      {/* BARRA SUPERIOR DE NAVEGACIÓN */}
+      {/* 1. BARRA SUPERIOR DE NAVEGACIÓN */}
       <header style={{
+        width: '100%',
+        boxSizing: 'border-box',
         display: 'flex',
+        flexWrap: 'wrap', // Permite que los elementos bajen si no hay espacio
+        gap: '15px',
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '18px 40px',
@@ -281,7 +287,7 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '36px',
@@ -333,19 +339,31 @@ export default function Dashboard({ user, onLogout }) {
       </header>
 
       {/* CONTENEDOR PRINCIPAL */}
-      <main style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1400px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <main style={{ 
+        padding: '32px 40px', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '28px', 
+        maxWidth: '1400px', 
+        margin: '0 auto', 
+        width: '100%', 
+        boxSizing: 'border-box' 
+      }}>
         
-        {/* CABECERA DE ESTADO */}
+        {/* 2. CABECERA DE ESTADO */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '15px',
           backgroundColor: '#0f172a',
           border: '1px solid #1e293b',
           borderRadius: '16px',
           padding: '18px 24px',
           boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-          backdropFilter: 'blur(10px)'
+          backdropFilter: 'blur(10px)',
+          boxSizing: 'border-box'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{
@@ -379,8 +397,13 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        {/* KPIS FINANCIEROS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+        {/* 3. KPIS FINANCIEROS */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: '16px',
+          boxSizing: 'border-box' 
+        }}>
           <div style={kpiCardStyle} onMouseEnter={handleCardHover} onMouseLeave={handleCardLeave}>
             <span style={kpiLabelStyle}>Bankroll Total Actual</span>
             <span style={kpiValueStyle}>S/ {kpis.bankroll}</span>
@@ -418,203 +441,387 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        {/* ==================== BLOQUE SUPERIOR (P&L + DERECHA) ==================== */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+        {/* 4. DISPOSICIÓN FLEXIBLE: COLUMNA IZQUIERDA (GRÁFICOS) | COLUMNA DERECHA (TARJETAS) */}
+        <div style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: '20px', 
+          width: '100%',
+          boxSizing: 'border-box' 
+        }}>
           
-          {/* GRÁFICO 1: EVOLUCIÓN DE P&L DIARIO */}
-          <div style={{
-            backgroundColor: '#0f172a',
-            border: '1px solid #1e293b',
-            borderRadius: '16px',
-            padding: '28px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
-            position: 'relative',
-            overflow: 'hidden'
+          {/* COLUMNA IZQUIERDA DE GRÁFICOS */}
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '20px', 
+            flex: '2 1 600px', // Ocupa 2/3 pero es adaptable
+            minWidth: 0,       // Previene desborde de contenido interno
+            boxSizing: 'border-box'
           }}>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', zIndex: 2 }}>
-              <div>
-                <h3 style={{ fontSize: '17px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px' }}>
-                  Evolución de P&L Diario ({capitalizedMonth})
-                </h3>
-                <p style={{ fontSize: '13px', color: '#94a3b8' }}>Rendimiento neto por jornada y comportamiento financiero</p>
+
+            {/* GRÁFICO 1: EVOLUCIÓN DE P&L DIARIO */}
+            <div style={{
+              backgroundColor: '#0f172a',
+              border: '1px solid #1e293b',
+              borderRadius: '16px',
+              padding: '28px',
+              paddingTop: '40px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
+              position: 'relative',
+              overflow: 'hidden',
+              boxSizing: 'border-box'
+            }}>
+              
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', zIndex: 2 }}>
+                <div>
+                  <h3 style={{ fontSize: '17px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px' }}>
+                    Evolución de P&L Diario ({capitalizedMonth})
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#94a3b8' }}>Rendimiento neto por jornada y comportamiento financiero</p>
+                </div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  fontWeight: '600',
+                  backgroundColor: 'rgba(37, 99, 235, 0.12)', 
+                  color: '#60a5fa', 
+                  padding: '7px 14px', 
+                  borderRadius: '8px', 
+                  border: '1px solid rgba(37, 99, 235, 0.3)',
+                  textTransform: 'capitalize'
+                }}>
+                  {currentMonthYearBadge} 📅
+                </div>
               </div>
+
               <div style={{ 
-                fontSize: '12px', 
-                fontWeight: '600',
-                backgroundColor: 'rgba(37, 99, 235, 0.12)', 
-                color: '#60a5fa', 
-                padding: '7px 14px', 
-                borderRadius: '8px', 
-                border: '1px solid rgba(37, 99, 235, 0.3)',
-                textTransform: 'capitalize'
+                height: '220px', 
+                display: 'flex', 
+                alignItems: 'flex-end', 
+                justifyContent: 'space-around', 
+                position: 'relative', 
+                paddingBottom: '24px', 
+                borderBottom: '1px solid #1e293b',
+                zIndex: 2 
               }}>
-                {currentMonthYearBadge} 📅
+                
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '50%', 
+                  left: 0, 
+                  right: 0, 
+                  borderTop: '1px dashed rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  pointerEvents: 'none'
+                }}>
+                  <span style={{ fontSize: '10px', color: '#64748b', backgroundColor: '#0f172a', padding: '0 6px', fontWeight: '600' }}>
+                    Break-Even (S/ 0.00)
+                  </span>
+                </div>
+
+                {dailyData.map((item, idx) => {
+                  const isPositive = item.profit >= 0;
+                  const barHeight = Math.max(Math.min(Math.abs(item.profit) * 1.3, 90), 8);
+
+                  return (
+                    <div 
+                      key={idx}
+                      onMouseEnter={() => setActiveTooltip(item)}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '10px',
+                        cursor: 'pointer',
+                        position: 'relative',
+                        height: '100%',
+                        justifyContent: 'flex-end',
+                        flex: 1
+                      }}
+                    >
+                      {activeTooltip === item && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '10%',
+                          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                          backdropFilter: 'blur(16px)',
+                          border: `1px solid ${isPositive ? '#38bdf8' : '#ef4444'}`,
+                          padding: '12px 16px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          color: '#ffffff',
+                          whiteSpace: 'nowrap',
+                          zIndex: 20,
+                          boxShadow: `0 15px 30px rgba(0,0,0,0.6), 0 0 20px ${isPositive ? 'rgba(56, 189, 248, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+                        }}>
+                          <div style={{ fontWeight: '700', color: '#38bdf8', marginBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}>
+                            Jornada - Día {item.day}
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
+                            <span style={{ color: '#94a3b8' }}>{isPositive ? 'Ganancia:' : 'Pérdida:'}</span>
+                            <span style={{ fontWeight: '700', color: isPositive ? '#4ade80' : '#f87171' }}>
+                              {isPositive ? `+S/ ${item.profit}` : `-S/ ${Math.abs(item.profit)}`}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
+                            <span style={{ color: '#94a3b8' }}>Volumen:</span>
+                            <span style={{ fontWeight: '600' }}>S/ {item.volume}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                            <span style={{ color: '#94a3b8' }}>Boletos:</span>
+                            <span style={{ fontWeight: '600' }}>{item.bets} jugadas</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{
+                        width: '32px',
+                        height: `${barHeight}px`,
+                        background: isPositive 
+                          ? 'linear-gradient(180deg, #38bdf8 0%, #2563eb 100%)' 
+                          : 'linear-gradient(180deg, #f87171 0%, #dc2626 100%)',
+                        borderRadius: '8px',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: isPositive ? '0 0 20px rgba(37, 99, 235, 0.5)' : '0 0 20px rgba(239, 68, 68, 0.5)',
+                        transform: activeTooltip === item ? 'scaleY(1.08) scaleX(1.05)' : 'scaleY(1) scaleX(1)'
+                      }} />
+
+                      <span style={{ fontSize: '12px', color: activeTooltip === item ? '#ffffff' : '#94a3b8' }}>
+                        Día {item.day}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', justifyContent: 'space-between', alignItems: 'center', marginTop: '18px', fontSize: '13px', zIndex: 2 }}>
+                <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>💡</span> Pasa el cursor sobre las barras para desplegar los detalles.
+                </span>
+                
+                {(() => {
+                  let streakCount = 0;
+                  let isPositiveStreak = true;
+                  
+                  if (dailyData.length > 0) {
+                    const lastDayPositive = dailyData[dailyData.length - 1].profit >= 0;
+                    isPositiveStreak = lastDayPositive;
+                    
+                    for (let i = dailyData.length - 1; i >= 0; i--) {
+                      if ((dailyData[i].profit >= 0) === lastDayPositive) {
+                        streakCount++;
+                      } else {
+                        break;
+                      }
+                    }
+                  }
+
+                  return (
+                    <div style={{
+                      color: isPositiveStreak ? '#4ade80' : '#f87171',
+                      fontWeight: '700',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      backgroundColor: isPositiveStreak ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                      padding: '6px 14px',
+                      borderRadius: '10px',
+                      border: `1px solid ${isPositiveStreak ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+                    }}>
+                      <span>{isPositiveStreak ? '🔥' : '⚠️'}</span>
+                      <span>Racha Actual: {streakCount} Días en {isPositiveStreak ? 'Positivo' : 'Negativo'}</span>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
-            <div style={{ 
-              height: '220px', 
-              display: 'flex', 
-              alignItems: 'flex-end', 
-              justifyContent: 'space-around', 
-              position: 'relative', 
-              paddingBottom: '24px', 
-              borderBottom: '1px solid #1e293b',
-              zIndex: 2 
+            {/* GRÁFICO 2: CRECIMIENTO Y CURVA DE BANKROLL ACUMULADO */}
+            <div className="animated-panel chart-card-animated" style={{
+              backgroundColor: '#0f172a',
+              border: '1px solid rgba(56, 189, 248, 0.2)',
+              borderRadius: '16px',
+              padding: '28px',
+              boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+              boxSizing: 'border-box'
             }}>
-              
-              <div style={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: 0, 
-                right: 0, 
-                borderTop: '1px dashed rgba(255, 255, 255, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                pointerEvents: 'none'
-              }}>
-                <span style={{ fontSize: '10px', color: '#64748b', backgroundColor: '#0f172a', padding: '0 6px', fontWeight: '600' }}>
-                  Break-Even (S/ 0.00)
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#38bdf8' }}>📈</span> Crecimiento Acumulado del Bankroll
+                  </h3>
+                  <p style={{ fontSize: '12.5px', color: '#94a3b8' }}>Evolución progresiva del capital global disponible</p>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                  Tendencia Positiva ⚡
                 </span>
               </div>
 
-              {dailyData.map((item, idx) => {
-                const isPositive = item.profit >= 0;
-                const barHeight = Math.max(Math.min(Math.abs(item.profit) * 1.3, 90), 8);
+              <div style={{
+                height: '180px',
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'space-between',
+                padding: '0 20px 20px 20px',
+                backgroundColor: 'rgba(7, 9, 14, 0.6)',
+                borderRadius: '12px',
+                border: '1px solid rgba(255,255,255,0.05)',
+                position: 'relative'
+              }}>
+                {cumulativeBankrollData.map((item, idx) => {
+                  const maxVal = Math.max(...cumulativeBankrollData.map(d => d.bankroll), 15);
+                  const minVal = Math.min(...cumulativeBankrollData.map(d => d.bankroll), 0);
+                  const range = (maxVal - minVal) || 1;
+                  const heightPercent = Math.max(((item.bankroll - minVal) / range) * 75 + 15, 12);
 
-                return (
-                  <div 
-                    key={idx}
-                    onMouseEnter={() => setActiveTooltip(item)}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '10px',
-                      cursor: 'pointer',
-                      position: 'relative',
-                      height: '100%',
-                      justifyContent: 'flex-end',
-                      flex: 1
-                    }}
-                  >
-                    {activeTooltip === item && (
+                  return (
+                    <div key={idx}
+                      onMouseEnter={() => setActiveTooltipChart2(item)}
+                      onMouseLeave={() => setActiveTooltipChart2(null)}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        height: '100%',
+                        flex: 1,
+                        position: 'relative',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {activeTooltipChart2 === item && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '-45px',
+                          backgroundColor: '#0f172a',
+                          border: '1px solid #38bdf8',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          color: '#ffffff',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 10px 25px rgba(56, 189, 248, 0.4)',
+                          zIndex: 10
+                        }}>
+                          <strong>Día {item.day}:</strong> S/ {item.bankroll.toFixed(2)}
+                        </div>
+                      )}
+
                       <div style={{
-                        position: 'absolute',
-                        top: '10%',
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        backdropFilter: 'blur(16px)',
-                        border: `1px solid ${isPositive ? '#38bdf8' : '#ef4444'}`,
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        color: '#ffffff',
-                        whiteSpace: 'nowrap',
-                        zIndex: 20,
-                        boxShadow: `0 15px 30px rgba(0,0,0,0.6), 0 0 20px ${isPositive ? 'rgba(56, 189, 248, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
-                      }}>
-                        <div style={{ fontWeight: '700', color: '#38bdf8', marginBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}>
-                          Jornada - Día {item.day}
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
-                          <span style={{ color: '#94a3b8' }}>{isPositive ? 'Ganancia:' : 'Pérdida:'}</span>
-                          <span style={{ fontWeight: '700', color: isPositive ? '#4ade80' : '#f87171' }}>
-                            {isPositive ? `+S/ ${item.profit}` : `-S/ ${Math.abs(item.profit)}`}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
-                          <span style={{ color: '#94a3b8' }}>Volumen:</span>
-                          <span style={{ fontWeight: '600' }}>S/ {item.volume}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-                          <span style={{ color: '#94a3b8' }}>Boletos:</span>
-                          <span style={{ fontWeight: '600' }}>{item.bets} jugadas</span>
-                        </div>
+                        width: '12px',
+                        height: `${heightPercent}%`,
+                        background: 'linear-gradient(180deg, #a855f7 0%, #2563eb 100%)',
+                        borderRadius: '6px 6px 0 0',
+                        boxShadow: '0 0 15px rgba(168, 85, 247, 0.4)',
+                        transition: 'all 0.3s ease',
+                        transform: activeTooltipChart2 === item ? 'scaleX(1.3)' : 'scaleX(1)'
+                      }} />
+                      <span style={{ fontSize: '11px', color: '#64748b', marginTop: '8px' }}>Día {item.day}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* GRÁFICO 3: DISTRIBUCIÓN Y RENDIMIENTO POR TIPO DE APUESTA */}
+            <div className="animated-panel chart-card-animated" style={{
+              backgroundColor: '#0f172a',
+              border: '1px solid rgba(168, 85, 247, 0.2)',
+              borderRadius: '16px',
+              padding: '28px',
+              boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+              boxSizing: 'border-box'
+            }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#a855f7' }}>🎯</span> Distribución por Tipo de Apuesta
+                  </h3>
+                  <p style={{ fontSize: '12.5px', color: '#94a3b8' }}>Proporción de volumen y tasa de acierto por categoría</p>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: 'rgba(168, 85, 247, 0.12)', color: '#a855f7', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                  Análisis Táctico 📊
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {betTypeStats.map((item, idx) => {
+                  const colors = {
+                    SIMPLE: { gradient: 'linear-gradient(90deg, #38bdf8 0%, #2563eb 100%)', shadow: 'rgba(56, 189, 248, 0.4)' },
+                    PARLAY: { gradient: 'linear-gradient(90deg, #a855f7 0%, #7c3aed 100%)', shadow: 'rgba(168, 85, 247, 0.4)' },
+                    BETBUILDER: { gradient: 'linear-gradient(90deg, #4ade80 0%, #059669 100%)', shadow: 'rgba(74, 222, 128, 0.4)' }
+                  };
+                  const styleColor = colors[item.type] || colors.SIMPLE;
+
+                  return (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', fontSize: '12.5px', fontWeight: '700' }}>
+                        <span style={{ color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: styleColor.gradient }}></span>
+                          {item.type} ({item.count} jugadas)
+                        </span>
+                        <span style={{ color: '#94a3b8' }}>
+                          Volumen: <strong style={{ color: '#ffffff' }}>{item.percentage}%</strong> | WinRate: <strong style={{ color: '#4ade80' }}>{item.winRate}%</strong>
+                        </span>
                       </div>
-                    )}
-
-                    <div style={{
-                      width: '32px',
-                      height: `${barHeight}px`,
-                      background: isPositive 
-                        ? 'linear-gradient(180deg, #38bdf8 0%, #2563eb 100%)' 
-                        : 'linear-gradient(180deg, #f87171 0%, #dc2626 100%)',
-                      borderRadius: '8px',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: isPositive ? '0 0 20px rgba(37, 99, 235, 0.5)' : '0 0 20px rgba(239, 68, 68, 0.5)',
-                      transform: activeTooltip === item ? 'scaleY(1.08) scaleX(1.05)' : 'scaleY(1) scaleX(1)'
-                    }} />
-
-                    <span style={{ fontSize: '12px', color: activeTooltip === item ? '#ffffff' : '#94a3b8' }}>
-                      Día {item.day}
-                    </span>
-                  </div>
-                );
-              })}
+                      <div style={{
+                        width: '100%',
+                        height: '10px',
+                        backgroundColor: '#07090e',
+                        borderRadius: '20px',
+                        overflow: 'hidden',
+                        border: '1px solid rgba(255,255,255,0.05)'
+                      }}>
+                        <div className="progress-bar-fill" style={{
+                          width: `${Math.max(item.percentage, 5)}%`,
+                          height: '100%',
+                          background: styleColor.gradient,
+                          borderRadius: '20px',
+                          boxShadow: `0 0 12px ${styleColor.shadow}`
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '18px', fontSize: '13px', zIndex: 2 }}>
-              <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>💡</span> Pasa el cursor sobre las barras para desplegar la ganancia o pérdida exacta del día.
-              </span>
-              
-              {(() => {
-                let streakCount = 0;
-                let isPositiveStreak = true;
-                
-                if (dailyData.length > 0) {
-                  const lastDayPositive = dailyData[dailyData.length - 1].profit >= 0;
-                  isPositiveStreak = lastDayPositive;
-                  
-                  for (let i = dailyData.length - 1; i >= 0; i--) {
-                    if ((dailyData[i].profit >= 0) === lastDayPositive) {
-                      streakCount++;
-                    } else {
-                      break;
-                    }
-                  }
-                }
-
-                return (
-                  <div style={{
-                    color: isPositiveStreak ? '#4ade80' : '#f87171',
-                    fontWeight: '700',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    backgroundColor: isPositiveStreak ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                    padding: '6px 14px',
-                    borderRadius: '10px',
-                    border: `1px solid ${isPositiveStreak ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
-                  }}>
-                    <span>{isPositiveStreak ? '🔥' : '⚠️'}</span>
-                    <span>Racha Actual: {streakCount} Días en {isPositiveStreak ? 'Positivo' : 'Negativo'}</span>
-                  </div>
-                );
-              })()}
-            </div>
           </div>
 
-          {/* COLUMNA DERECHA DE TARJETAS */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* COLUMNA DERECHA */}
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '20px', 
+            flex: '1 1 300px', // Ocupa 1/3 pero se adapta al 100% si falta espacio
+            minWidth: 0, 
+            boxSizing: 'border-box'
+          }}>
             
-            {/* Liquidez por Casa de Apuestas */}
+            {/* 1. Liquidez por Casa de Apuestas */}
             <div className="animated-panel" style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
               borderRadius: '16px',
               padding: '22px',
               boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-              backdropFilter: 'blur(12px)'
+              backdropFilter: 'blur(12px)',
+              boxSizing: 'border-box'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#f8fafc', letterSpacing: '0.3px' }}>Liquidez por Casa de Apuestas</h4>
+                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#f8fafc', letterSpacing: '0.3px' }}>Liquidez por Casa</h4>
                 <span style={{ fontSize: '11px', color: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
                   {bookmakers.length} Activas
                 </span>
@@ -650,14 +857,15 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* Apuestas Pendientes */}
+            {/* 2. Apuestas Pendientes */}
             <div className="animated-panel" style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
               borderRadius: '16px',
               padding: '22px',
               boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-              backdropFilter: 'blur(12px)'
+              backdropFilter: 'blur(12px)',
+              boxSizing: 'border-box'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#f8fafc', letterSpacing: '0.3px' }}>
@@ -688,16 +896,16 @@ export default function Dashboard({ user, onLogout }) {
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', alignItems: 'center' }}>
                         <span style={{ fontWeight: '700', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ width: '6px', height: '6px', backgroundColor: '#38bdf8', borderRadius: '50%' }}></span>
+                          <span style={{ minWidth: '6px', height: '6px', backgroundColor: '#38bdf8', borderRadius: '50%' }}></span>
                           Apuesta #{bet.id} {bet.bet_type ? `(${bet.bet_type})` : ''}
                         </span>
                         <span style={{ color: '#facc15', fontWeight: '700', fontSize: '11px', backgroundColor: 'rgba(234, 179, 8, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
                           Pendiente ⏳
                         </span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '11.5px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '6px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', color: '#94a3b8', fontSize: '11.5px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '6px' }}>
                         <span>Stake: <strong style={{ color: '#f8fafc' }}>S/ {Number(bet.stake).toFixed(2)}</strong></span>
-                        <span>Cuota Total: <strong style={{ color: '#4ade80' }}>{Number(bet.total_odds).toFixed(2)}</strong></span>
+                        <span>Cuota: <strong style={{ color: '#4ade80' }}>{Number(bet.total_odds).toFixed(2)}</strong></span>
                       </div>
                     </div>
                   ))
@@ -716,7 +924,100 @@ export default function Dashboard({ user, onLogout }) {
                     gap: '6px'
                   }}>
                     <span style={{ fontSize: '18px' }}>🎯</span>
-                    <span>No hay apuestas pendientes en este momento</span>
+                    <span>No hay apuestas pendientes</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 3. ÚLTIMAS APUESTAS (DEBAJO DE PENDIENTES) */}
+            <div className="animated-panel" style={{
+              backgroundColor: '#0f172a',
+              border: '1px solid #1e293b',
+              borderRadius: '16px',
+              padding: '22px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+              backdropFilter: 'blur(12px)',
+              boxSizing: 'border-box'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#f8fafc', letterSpacing: '0.3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>📋</span> Últimas Apuestas
+                </h4>
+                <span style={{ 
+                  fontSize: '11px', 
+                  fontWeight: '700', 
+                  backgroundColor: 'rgba(56, 189, 248, 0.12)', 
+                  color: '#38bdf8', 
+                  padding: '3px 9px', 
+                  borderRadius: '6px',
+                  border: '1px solid rgba(56, 189, 248, 0.25)'
+                }}>
+                  Histórico Reciente
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {recentBets.length > 0 ? (
+                  recentBets.map((bet) => {
+                    const isWon = bet.status === 'WON';
+                    const isLost = bet.status === 'LOST';
+
+                    const badgeBg = isWon ? 'rgba(34, 197, 94, 0.15)' : isLost ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)';
+                    const badgeBorder = isWon ? 'rgba(34, 197, 94, 0.3)' : isLost ? 'rgba(239, 68, 68, 0.3)' : 'rgba(168, 85, 247, 0.3)';
+                    const badgeColor = isWon ? '#4ade80' : isLost ? '#f87171' : '#a855f7';
+                    const statusText = isWon ? 'Ganada ✓' : isLost ? 'Perdida ✗' : 'Cashout ⚡';
+
+                    return (
+                      <div key={bet.id} className="recent-card-item" style={{ 
+                        backgroundColor: '#07090e', 
+                        padding: '12px 14px', 
+                        borderRadius: '10px', 
+                        border: '1px solid rgba(255, 255, 255, 0.05)', 
+                        fontSize: '12px' 
+                      }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', justifyContent: 'space-between', marginBottom: '6px', alignItems: 'center' }}>
+                          <span style={{ fontWeight: '700', color: '#e2e8f0' }}>
+                            Apuesta #{bet.id} <span style={{ color: '#64748b', fontWeight: '500' }}>({bet.bet_type || 'SIMPLE'})</span>
+                          </span>
+                          <span style={{ 
+                            color: badgeColor, 
+                            fontWeight: '700', 
+                            fontSize: '10.5px', 
+                            backgroundColor: badgeBg, 
+                            border: `1px solid ${badgeBorder}`,
+                            padding: '2px 7px', 
+                            borderRadius: '5px' 
+                          }}>
+                            {statusText}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', color: '#94a3b8', fontSize: '11.5px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '6px' }}>
+                          <span>Stake: <strong style={{ color: '#f8fafc' }}>S/ {Number(bet.stake).toFixed(2)}</strong></span>
+                          <span>P&L: <strong style={{ color: Number(bet.profit_loss) >= 0 ? '#4ade80' : '#f87171' }}>
+                            {Number(bet.profit_loss) >= 0 ? `+S/ ${Number(bet.profit_loss).toFixed(2)}` : `-S/ ${Math.abs(Number(bet.profit_loss)).toFixed(2)}`}
+                          </strong></span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: '#64748b', 
+                    textAlign: 'center', 
+                    padding: '20px 12px', 
+                    background: '#07090e', 
+                    borderRadius: '10px', 
+                    border: '1px dashed #1e293b',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span style={{ fontSize: '18px' }}>📂</span>
+                    <span>No hay historial registrado</span>
                   </div>
                 )}
               </div>
@@ -724,253 +1025,6 @@ export default function Dashboard({ user, onLogout }) {
 
           </div>
 
-        </div>
-
-        {/* ==================== BLOQUE INFERIOR (UBICADO POR DEBAJO) ==================== */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          
-          {/* GRÁFICO 2: CRECIMIENTO Y CURVA DE BANKROLL ACUMULADO */}
-          <div className="animated-panel chart-card-animated" style={{
-            backgroundColor: '#0f172a',
-            border: '1px solid rgba(56, 189, 248, 0.2)',
-            borderRadius: '16px',
-            padding: '28px',
-            boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: '#38bdf8' }}>📈</span> Crecimiento Acumulado del Bankroll
-                </h3>
-                <p style={{ fontSize: '12.5px', color: '#94a3b8' }}>Evolución progresiva del capital global disponible</p>
-              </div>
-              <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
-                Tendencia Positiva ⚡
-              </span>
-            </div>
-
-            <div style={{
-              height: '180px',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'space-between',
-              padding: '0 20px 20px 20px',
-              backgroundColor: 'rgba(7, 9, 14, 0.6)',
-              borderRadius: '12px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              position: 'relative'
-            }}>
-              {cumulativeBankrollData.map((item, idx) => {
-                const maxVal = Math.max(...cumulativeBankrollData.map(d => d.bankroll), 15);
-                const minVal = Math.min(...cumulativeBankrollData.map(d => d.bankroll), 0);
-                const range = (maxVal - minVal) || 1;
-                const heightPercent = Math.max(((item.bankroll - minVal) / range) * 75 + 15, 12);
-
-                return (
-                  <div key={idx}
-                    onMouseEnter={() => setActiveTooltipChart2(item)}
-                    onMouseLeave={() => setActiveTooltipChart2(null)}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      height: '100%',
-                      flex: 1,
-                      position: 'relative',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {activeTooltipChart2 === item && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '-45px',
-                        backgroundColor: '#0f172a',
-                        border: '1px solid #38bdf8',
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        fontSize: '11px',
-                        color: '#ffffff',
-                        whiteSpace: 'nowrap',
-                        boxShadow: '0 10px 25px rgba(56, 189, 248, 0.4)',
-                        zIndex: 10
-                      }}>
-                        <strong>Día {item.day}:</strong> S/ {item.bankroll.toFixed(2)}
-                      </div>
-                    )}
-
-                    <div style={{
-                      width: '12px',
-                      height: `${heightPercent}%`,
-                      background: 'linear-gradient(180deg, #a855f7 0%, #2563eb 100%)',
-                      borderRadius: '6px 6px 0 0',
-                      boxShadow: '0 0 15px rgba(168, 85, 247, 0.4)',
-                      transition: 'all 0.3s ease',
-                      transform: activeTooltipChart2 === item ? 'scaleX(1.3)' : 'scaleX(1)'
-                    }} />
-                    <span style={{ fontSize: '11px', color: '#64748b', marginTop: '8px' }}>Día {item.day}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* GRÁFICO 3: DISTRIBUCIÓN Y RENDIMIENTO POR TIPO DE APUESTA */}
-          <div className="animated-panel chart-card-animated" style={{
-            backgroundColor: '#0f172a',
-            border: '1px solid rgba(168, 85, 247, 0.2)',
-            borderRadius: '16px',
-            padding: '28px',
-            boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: '#a855f7' }}>🎯</span> Distribución por Tipo de Apuesta
-                </h3>
-                <p style={{ fontSize: '12.5px', color: '#94a3b8' }}>Proporción de volumen y tasa de acierto por categoría</p>
-              </div>
-              <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: 'rgba(168, 85, 247, 0.12)', color: '#a855f7', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
-                Análisis Táctico 📊
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {betTypeStats.map((item, idx) => {
-                const colors = {
-                  SIMPLE: { gradient: 'linear-gradient(90deg, #38bdf8 0%, #2563eb 100%)', shadow: 'rgba(56, 189, 248, 0.4)' },
-                  PARLAY: { gradient: 'linear-gradient(90deg, #a855f7 0%, #7c3aed 100%)', shadow: 'rgba(168, 85, 247, 0.4)' },
-                  BETBUILDER: { gradient: 'linear-gradient(90deg, #4ade80 0%, #059669 100%)', shadow: 'rgba(74, 222, 128, 0.4)' }
-                };
-                const styleColor = colors[item.type] || colors.SIMPLE;
-
-                return (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', fontWeight: '700' }}>
-                      <span style={{ color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: styleColor.gradient }}></span>
-                        {item.type} ({item.count} jugadas)
-                      </span>
-                      <span style={{ color: '#94a3b8' }}>
-                        Volumen: <strong style={{ color: '#ffffff' }}>{item.percentage}%</strong> | WinRate: <strong style={{ color: '#4ade80' }}>{item.winRate}%</strong>
-                      </span>
-                    </div>
-                    <div style={{
-                      width: '100%',
-                      height: '10px',
-                      backgroundColor: '#07090e',
-                      borderRadius: '20px',
-                      overflow: 'hidden',
-                      border: '1px solid rgba(255,255,255,0.05)'
-                    }}>
-                      <div className="progress-bar-fill" style={{
-                        width: `${Math.max(item.percentage, 5)}%`,
-                        height: '100%',
-                        background: styleColor.gradient,
-                        borderRadius: '20px',
-                        boxShadow: `0 0 12px ${styleColor.shadow}`
-                      }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-        </div>
-
-        {/* ==================== BLOQUE ÚLTIMAS APUESTAS (ANCHO COMPLETO ABAJO) ==================== */}
-        <div className="animated-panel" style={{
-          backgroundColor: '#0f172a',
-          border: '1px solid #1e293b',
-          borderRadius: '16px',
-          padding: '22px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-          backdropFilter: 'blur(12px)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#f8fafc', letterSpacing: '0.3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>📋</span> Últimas Apuestas Realizadas
-            </h4>
-            <span style={{ 
-              fontSize: '11px', 
-              fontWeight: '700', 
-              backgroundColor: 'rgba(56, 189, 248, 0.12)', 
-              color: '#38bdf8', 
-              padding: '3px 9px', 
-              borderRadius: '6px',
-              border: '1px solid rgba(56, 189, 248, 0.25)'
-            }}>
-              Histórico Reciente
-            </span>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-            {recentBets.length > 0 ? (
-              recentBets.map((bet) => {
-                const isWon = bet.status === 'WON';
-                const isLost = bet.status === 'LOST';
-
-                const badgeBg = isWon ? 'rgba(34, 197, 94, 0.15)' : isLost ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)';
-                const badgeBorder = isWon ? 'rgba(34, 197, 94, 0.3)' : isLost ? 'rgba(239, 68, 68, 0.3)' : 'rgba(168, 85, 247, 0.3)';
-                const badgeColor = isWon ? '#4ade80' : isLost ? '#f87171' : '#a855f7';
-                const statusText = isWon ? 'Ganada ✓' : isLost ? 'Perdida ✗' : 'Cashout ⚡';
-
-                return (
-                  <div key={bet.id} className="recent-card-item" style={{ 
-                    backgroundColor: '#07090e', 
-                    padding: '12px 14px', 
-                    borderRadius: '10px', 
-                    border: '1px solid rgba(255, 255, 255, 0.05)', 
-                    fontSize: '12px' 
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', alignItems: 'center' }}>
-                      <span style={{ fontWeight: '700', color: '#e2e8f0' }}>
-                        Apuesta #{bet.id} <span style={{ color: '#64748b', fontWeight: '500' }}>({bet.bet_type || 'SIMPLE'})</span>
-                      </span>
-                      <span style={{ 
-                        color: badgeColor, 
-                        fontWeight: '700', 
-                        fontSize: '10.5px', 
-                        backgroundColor: badgeBg, 
-                        border: `1px solid ${badgeBorder}`,
-                        padding: '2px 7px', 
-                        borderRadius: '5px' 
-                      }}>
-                        {statusText}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '11.5px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '6px' }}>
-                      <span>Stake: <strong style={{ color: '#f8fafc' }}>S/ {Number(bet.stake).toFixed(2)}</strong></span>
-                      <span>P&L: <strong style={{ color: Number(bet.profit_loss) >= 0 ? '#4ade80' : '#f87171' }}>
-                        {Number(bet.profit_loss) >= 0 ? `+S/ ${Number(bet.profit_loss).toFixed(2)}` : `-S/ ${Math.abs(Number(bet.profit_loss)).toFixed(2)}`}
-                      </strong></span>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div style={{ 
-                fontSize: '12px', 
-                color: '#64748b', 
-                textAlign: 'center', 
-                padding: '20px 12px', 
-                background: '#07090e', 
-                borderRadius: '10px', 
-                border: '1px dashed #1e293b',
-                gridColumn: '1 / -1'
-              }}>
-                No hay historial de apuestas registradas
-              </div>
-            )}
-          </div>
         </div>
 
       </main>
@@ -988,7 +1042,8 @@ const kpiCardStyle = {
   flexDirection: 'column',
   transition: 'all 0.3s ease',
   cursor: 'pointer',
-  boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+  boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+  boxSizing: 'border-box' // PREVIENE DESBORDES INTERNOS
 }
 
 const kpiLabelStyle = {
