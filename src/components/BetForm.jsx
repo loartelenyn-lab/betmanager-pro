@@ -1,12 +1,27 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase/client'
 
+const formatBogotaDate = (dateString) => {
+  if (!dateString) return 'Sin fecha'
+  const d = new Date(dateString)
+  if (isNaN(d.getTime())) return 'Sin fecha'
+  return d.toLocaleString('es-CO', {
+    timeZone: 'America/Bogota',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  })
+}
+
 export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
-  // Estado general del formulario
-  const [betType, setBetType] = useState('Simple') // Simple | Parlay | BetBuilder
+  const [betType, setBetType] = useState('Simple')
   const [bookmakersList, setBookmakersList] = useState([])
   const [selectedBookmakerId, setSelectedBookmakerId] = useState('')
-  const [fundType, setFundType] = useState('CASH') // CASH | FREEBET | BONUS
+  const [fundType, setFundType] = useState('CASH')
   const [stake, setStake] = useState('')
   const [globalOdds, setGlobalOdds] = useState('')
   const [notes, setNotes] = useState('')
@@ -14,39 +29,32 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
   const [errorMessage, setErrorMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Catálogos desde Supabase
   const [sports, setSports] = useState([])
   const [leagues, setLeagues] = useState([])
 
-  // Datos principales del partido único para BetBuilder
   const [bbSportId, setBbSportId] = useState('')
   const [bbLeagueId, setBbLeagueId] = useState('')
   const [bbMatchName, setBbMatchName] = useState('Real Madrid vs. Barcelona')
 
-  // Constructor dinámico de selecciones ("Patas" o Legs)
   const [legs, setLegs] = useState([
     { id: 1, sport_id: '', league_id: '', match_name: '', selection: '', odds: '' }
   ])
 
-  // Mercados específicos para BetBuilder
   const [bbMarkets, setBbMarkets] = useState([
     { id: 1, selection: 'Más de 2.5 goles' },
     { id: 2, selection: 'Ambos anotan (Sí)' }
   ])
 
-  // FUNCIÓN PRINCIPAL DE CARGA (Corregida con asignación inicial robusta para Simple/Parlay)
   const fetchInitialData = async () => {
     try {
-      // 1. Fallback Seguro: Si el componente padre no manda el user, consultamos la sesión activa
       let currentUserId = user?.id;
       if (!currentUserId) {
         const { data: authData } = await supabase.auth.getUser();
         currentUserId = authData?.user?.id;
       }
 
-      if (!currentUserId) return; // Detiene la ejecución si genuinamente no hay sesión
+      if (!currentUserId) return;
 
-      // 2. Bookmakers del usuario (RLS ya aplica el filtro por auth.uid automáticamente)
       const { data: bData, error: bError } = await supabase
         .from('bookmakers')
         .select('*')
@@ -60,7 +68,6 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
         setBookmakersList([]);
       }
 
-      // 3. Deportes y Ligas desde Supabase
       const { data: sData, error: sError } = await supabase.from('sports').select('*');
       const { data: lData, error: lError } = await supabase.from('leagues').select('*');
       
@@ -80,7 +87,6 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
             setBbLeagueId(initialLeagues[0].id);
           }
 
-          // Inicializar la primera línea de Simple/Parlay con datos sincronizados
           setLegs([{
             id: 1,
             sport_id: defaultSportId,
@@ -97,17 +103,14 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
     }
   };
 
-  // Efecto montado independiente para evitar bloqueos
   useEffect(() => {
     fetchInitialData();
   }, [user]);
 
-  // Filtrar ligas según el deporte seleccionado (usando Number para evitar conflictos de tipo)
   const getFilteredLeagues = (sportId) => {
     return leagues.filter(l => l.sport_id === Number(sportId));
   };
 
-  // Añadir selección según el tipo de apuesta
   const handleAddLeg = () => {
     if (betType === 'BetBuilder') {
       setBbMarkets([...bbMarkets, { id: Date.now(), selection: '' }])
@@ -123,7 +126,6 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
     }
   }
 
-  // Eliminar selección
   const handleRemoveItem = (id, isBB = false) => {
     if (isBB) {
       if (bbMarkets.length === 1) return;
@@ -134,7 +136,6 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
     }
   }
 
-  // Actualizar campo de una selección Simple/Parlay
   const handleLegChange = (id, field, value) => {
     setLegs(legs.map(leg => {
       if (leg.id === id) {
@@ -149,7 +150,6 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
     }))
   }
 
-  // Cálculo del Retorno Potencial y Cuotas Efectivas
   const currentSelectedBookmaker = bookmakersList.find(b => b.id === Number(selectedBookmakerId))
   const numericStake = parseFloat(stake) || 0
   
@@ -162,7 +162,6 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
 
   const potentialPayout = (numericStake * effectiveOdds).toFixed(2)
 
-  // Manejo del Envío (Corregido: no realiza llamadas innecesarias a update ni modifica created_at)
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (isCajaClosed) return
@@ -207,7 +206,6 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
         }))
       }
 
-      // La función RPC registra el ticket. No se realiza ningún UPDATE a created_at posteriormente.
       const { data, error } = await supabase.rpc('register_bet_transaction', {
         p_user_id: currentUserId,
         p_bookmaker_id: Number(selectedBookmakerId),
@@ -224,7 +222,15 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
 
       if (data && data.success) {
         setSuccessMessage(true)
-        if (onSaveBet) onSaveBet(data)
+
+        const nowISO = new Date().toISOString()
+        const formattedNewBet = {
+          ...data,
+          created_at: data.created_at || nowISO,
+          date: formatBogotaDate(data.created_at || nowISO)
+        }
+
+        if (onSaveBet) onSaveBet(formattedNewBet)
 
         setTimeout(() => {
           setSuccessMessage(false)

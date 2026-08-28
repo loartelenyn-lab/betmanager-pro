@@ -1,18 +1,40 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase/client'
 
+const formatBogotaDate = (dateString) => {
+  if (!dateString) return 'Sin fecha'
+  const d = new Date(dateString)
+  if (isNaN(d.getTime())) return 'Sin fecha'
+  return d.toLocaleString('es-CO', {
+    timeZone: 'America/Bogota',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  })
+}
+
 export default function Settlement({ userId, bets = [], onSettleBet }) {
-  const [internalBets, setInternalBets] = useState(bets.length > 0 ? bets : [])
-
+  const [internalBets, setInternalBets] = useState([])
   const [bookmakersList, setBookmakersList] = useState([])
-  const [isLoading, setIsLoading] = useState(userId ? false : false)
-
   const [filterBookmaker, setFilterBookmaker] = useState('ALL')
   const [filterType, setFilterType] = useState('ALL')
   const [expandedCardId, setExpandedCardId] = useState(null)
   
   const [modalConfig, setModalConfig] = useState({ open: false, type: null, bet: null })
   const [modalInputVal, setModalInputVal] = useState('')
+
+  useEffect(() => {
+    if (bets && bets.length > 0) {
+      setInternalBets(bets.map(b => ({
+        ...b,
+        date: b.date && b.date !== 'Sin fecha' ? b.date : formatBogotaDate(b.created_at)
+      })))
+    }
+  }, [bets])
 
   useEffect(() => {
     if (userId) {
@@ -55,16 +77,8 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
           odds: Number(b.total_odds),
           payout: Number(b.potential_payout),
           status: b.status,
-          date: b.created_at ? new Date(b.created_at).toLocaleString('es-PE', {
-            timeZone: 'America/Lima',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true
-          }) : 'Sin fecha',
+          created_at: b.created_at,
+          date: formatBogotaDate(b.created_at),
           profit: Number(b.profit_loss || 0),
           cashout_amount: Number(b.cashout_amount || 0),
           legs: (b.bet_legs || []).map(l => ({
@@ -83,7 +97,8 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
 
   const handleProcessSettlement = async (betId, newStatus, customProfit = null, customPayout = 0) => {
     const currentBet = internalBets.find(b => b.id === betId)
-    const oldStatus = currentBet ? currentBet.status : 'PENDING'
+    if (!currentBet) return
+    const oldStatus = currentBet.status
 
     const updated = internalBets.map(bet => {
       if (bet.id === betId) {
@@ -124,7 +139,6 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
     if (userId) {
       const targetBet = updated.find(b => b.id === betId)
       
-      // Se especifica solo los campos necesarios en update para no alterar created_at
       await supabase
         .from('bets')
         .update({
