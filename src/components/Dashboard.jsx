@@ -18,10 +18,10 @@ export default function Dashboard({ user, onLogout }) {
   const [loading, setLoading] = useState(true)
   const [bookmakers, setBookmakers] = useState([])
   const [pendingBets, setPendingBets] = useState([])
-  const [recentBets, setRecentBets] = useState([]) // NUEVO: Estado para últimas apuestas resueltas
+  const [recentBets, setRecentBets] = useState([])
   const [dailyData, setDailyData] = useState([])
-  const [cumulativeBankrollData, setCumulativeBankrollData] = useState([]) // NUEVO: Datos Gráfico 2
-  const [betTypeStats, setBetTypeStats] = useState([]) // NUEVO: Datos Gráfico 3
+  const [cumulativeBankrollData, setCumulativeBankrollData] = useState([])
+  const [betTypeStats, setBetTypeStats] = useState([])
   
   const [kpis, setKpis] = useState({
     bankroll: '0.00',
@@ -88,7 +88,6 @@ export default function Dashboard({ user, onLogout }) {
       const pending = allBets.filter(b => b.status === 'PENDING');
       
       setPendingBets(pending);
-      // NUEVO: Guardar las últimas 5 apuestas resueltas para el nuevo apartado
       setRecentBets(settledBets.slice(0, 5));
 
       const totalProfit = settledBets.reduce((acc, b) => acc + Number(b.profit_loss || 0), 0);
@@ -108,7 +107,7 @@ export default function Dashboard({ user, onLogout }) {
         avgStake: avgStakeVal
       });
 
-      // 4. Procesar P&L Diario (Gráfico 1 Original)
+      // 4. Procesar P&L Diario
       const daysMap = {};
       settledBets.forEach(bet => {
         const rawDate = new Date(bet.created_at);
@@ -136,7 +135,7 @@ export default function Dashboard({ user, onLogout }) {
 
       setDailyData(processedDays);
 
-      // NUEVO: Procesar Crecimiento Acumulado del Bankroll (Gráfico 2)
+      // 5. Crecimiento Acumulado del Bankroll
       let runningBankroll = totalBankroll - totalProfit;
       const bankrollTrend = processedDays.map(item => {
         runningBankroll += item.profit;
@@ -148,7 +147,7 @@ export default function Dashboard({ user, onLogout }) {
       });
       setCumulativeBankrollData(bankrollTrend);
 
-      // NUEVO: Procesar Distribución por Tipo de Apuesta (Gráfico 3)
+      // 6. Distribución por Tipo de Apuesta
       const typeMap = { SIMPLE: { total: 0, won: 0 }, PARLAY: { total: 0, won: 0 }, BETBUILDER: { total: 0, won: 0 } };
       settledBets.forEach(bet => {
         const type = bet.bet_type || 'SIMPLE';
@@ -184,16 +183,14 @@ export default function Dashboard({ user, onLogout }) {
 
   return (
     <div style={{
-      width: '100vw',
-      height: '100vh',
+      width: '100%',
+      minHeight: '100vh',
       backgroundColor: '#07090e',
       color: '#ffffff',
       display: 'flex',
       flexDirection: 'column',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-      boxSizing: 'border-box',
-      overflowX: 'hidden',
-      overflowY: 'auto'
+      boxSizing: 'border-box'
     }}>
       
       <style>{`
@@ -427,7 +424,7 @@ export default function Dashboard({ user, onLogout }) {
           {/* COLUMNA IZQUIERDA DE GRÁFICOS */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-            {/* GRÁFICO 1: EVOLUCIÓN DE P&L DIARIO (INTACTO DE LA PRIMERA IMAGEN) */}
+            {/* GRÁFICO 1: EVOLUCIÓN DE P&L DIARIO */}
             <div style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
@@ -608,9 +605,7 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* ========================================================================= */}
-            {/* NUEVO GRÁFICO 2: CRECIMIENTO Y CURVA DE BANKROLL ACUMULADO                 */}
-            {/* ========================================================================= */}
+            {/* GRÁFICO 2: CRECIMIENTO Y CURVA DE BANKROLL ACUMULADO */}
             <div className="animated-panel chart-card-animated" style={{
               backgroundColor: '#0f172a',
               border: '1px solid rgba(56, 189, 248, 0.2)',
@@ -633,7 +628,6 @@ export default function Dashboard({ user, onLogout }) {
                 </span>
               </div>
 
-              {/* Área interactiva de tendencia del Bankroll */}
               <div style={{
                 height: '180px',
                 display: 'flex',
@@ -700,9 +694,7 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* ========================================================================= */}
-            {/* NUEVO GRÁFICO 3: DISTRIBUCIÓN Y RENDIMIENTO POR TIPO DE APUESTA          */}
-            {/* ========================================================================= */}
+            {/* GRÁFICO 3: DISTRIBUCIÓN Y RENDIMIENTO POR TIPO DE APUESTA */}
             <div className="animated-panel chart-card-animated" style={{
               backgroundColor: '#0f172a',
               border: '1px solid rgba(168, 85, 247, 0.2)',
@@ -725,7 +717,6 @@ export default function Dashboard({ user, onLogout }) {
                 </span>
               </div>
 
-              {/* Barras de distribución animadas */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {betTypeStats.map((item, idx) => {
                   const colors = {
@@ -770,9 +761,7 @@ export default function Dashboard({ user, onLogout }) {
 
           </div>
 
-          {/* ========================================================================= */}
-          {/* COLUMNA DERECHA: LIQUIDEZ | APUESTAS PENDIENTES | ÚLTIMAS APUESTAS         */}
-          {/* ========================================================================= */}
+          {/* COLUMNA DERECHA */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
             {/* 1. Liquidez por Casa de Apuestas */}
@@ -893,9 +882,7 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* ========================================================================= */}
-            {/* NUEVO APARTADO: ÚLTIMAS APUESTAS (DEBAJO DE APUESTAS PENDIENTES)         */}
-            {/* ========================================================================= */}
+            {/* 3. ÚLTIMAS APUESTAS (DEBAJO DE PENDIENTES) */}
             <div className="animated-panel" style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
@@ -926,7 +913,6 @@ export default function Dashboard({ user, onLogout }) {
                   recentBets.map((bet) => {
                     const isWon = bet.status === 'WON';
                     const isLost = bet.status === 'LOST';
-                    const isCashout = bet.status === 'CASHOUT';
 
                     const badgeBg = isWon ? 'rgba(34, 197, 94, 0.15)' : isLost ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)';
                     const badgeBorder = isWon ? 'rgba(34, 197, 94, 0.3)' : isLost ? 'rgba(239, 68, 68, 0.3)' : 'rgba(168, 85, 247, 0.3)';
