@@ -112,7 +112,7 @@ export default function Dashboard({ user, onLogout }) {
         avgStake: avgStakeVal
       });
 
-      // 4. Procesar Dinámicamente el P&L Diario ajustando las fechas a la zona horaria de Perú (UTC-5)
+      // 4. Procesar Dinámicamente el P&L Diario ajustando las fechas a la zona horaria de Perú (UTC-5) y limitando a un contenedor máximo de 7 barras
       const daysMap = {};
       settledBets.forEach(bet => {
         const rawDate = new Date(bet.created_at);
@@ -127,8 +127,7 @@ export default function Dashboard({ user, onLogout }) {
         daysMap[dayStr].bets += 1;
       });
 
-      // Asegurar que si hay registros recientes (como ayer y hoy), ambos días aparezcan ordenados correctamente
-      const processedDays = Object.keys(daysMap).length > 0 
+      const sortedProcessedDays = Object.keys(daysMap).length > 0 
         ? Object.values(daysMap).sort((a, b) => a.day.localeCompare(b.day))
         : [
             { day: '01', profit: 0, volume: 0, bets: 0 },
@@ -139,7 +138,10 @@ export default function Dashboard({ user, onLogout }) {
             { day: '26', profit: 0, volume: 0, bets: 0 },
           ];
 
-      setDailyData(processedDays);
+      // Restringir estrictamente el contenedor a un máximo de 7 barras (tomando las últimas 7 jornadas si hay más)
+      const limitedDailyData = sortedProcessedDays.slice(-7);
+
+      setDailyData(limitedDailyData);
 
     } catch (error) {
       console.error('Error general al cargar datos del Dashboard:', error.message);
@@ -409,7 +411,7 @@ export default function Dashboard({ user, onLogout }) {
                 <h3 style={{ fontSize: '17px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px' }}>
                   Evolución de P&L Diario ({capitalizedMonth})
                 </h3>
-                <p style={{ fontSize: '13px', color: '#94a3b8' }}>Rendimiento neto por jornada y comportamiento financiero</p>
+                <p style={{ fontSize: '13px', color: '#94a3b8' }}>Rendimiento neto por jornada (máximo 7 barras recientes)</p>
               </div>
               <div style={{ 
                 fontSize: '12px', 
@@ -508,6 +510,7 @@ export default function Dashboard({ user, onLogout }) {
                       </div>
                     )}
 
+                    {/* Las barras dependen estrictamente de los resultados del día: rojo si hay pérdidas (< 0), azul/verde si hay ganancias (>= 0) */}
                     <div style={{
                       width: '32px',
                       height: `${barHeight}px`,
@@ -530,7 +533,7 @@ export default function Dashboard({ user, onLogout }) {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '18px', fontSize: '13px', zIndex: 2 }}>
               <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>💡</span> Pasa el cursor sobre las barras para desplegar la ganancia o pérdida exacta del día.
+                <span>💡</span> Pasa el cursor sobre las barras para desplegar el detalle diario.
               </span>
               
               {(() => {
@@ -571,7 +574,7 @@ export default function Dashboard({ user, onLogout }) {
           </div>
 
           {/* ========================================================================= */}
-          {/* APARTADO DE LIQUIDEZ POR CASA DE APUESTAS Y APUESTAS PENDIENTES           */}
+          {/* APARTADO MEJORADO: LIQUIDEZ POR CASA DE APUESTAS Y APUESTAS PENDIENTES     */}
           {/* ========================================================================= */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
