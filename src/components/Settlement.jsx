@@ -55,7 +55,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
           odds: Number(b.total_odds),
           payout: Number(b.potential_payout),
           status: b.status,
-          date: new Date(b.created_at).toLocaleString('es-PE', {
+          date: b.created_at ? new Date(b.created_at).toLocaleString('es-PE', {
             timeZone: 'America/Lima',
             day: '2-digit',
             month: '2-digit',
@@ -64,9 +64,9 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
             minute: '2-digit',
             second: '2-digit',
             hour12: true
-          }),
+          }) : 'Sin fecha',
           profit: Number(b.profit_loss || 0),
-          cashout_amount: Number(b.cashout_amount || 0), // 👈 Guardamos el cashout previo para revertirlo bien si se reabre
+          cashout_amount: Number(b.cashout_amount || 0),
           legs: (b.bet_legs || []).map(l => ({
             sport: 'Deporte',
             league: 'Liga',
@@ -82,7 +82,6 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
   }
 
   const handleProcessSettlement = async (betId, newStatus, customProfit = null, customPayout = 0) => {
-    // Buscamos la apuesta actual antes de modificarla para saber su estado anterior
     const currentBet = internalBets.find(b => b.id === betId)
     const oldStatus = currentBet ? currentBet.status : 'PENDING'
 
@@ -93,7 +92,6 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
 
         if (newStatus === 'PENDING') {
           finalProfit = 0
-          // Al reabrir, el payout vuelve a ser el potencial original (Stake * Cuota)
           finalPayout = parseFloat((bet.stake * bet.odds).toFixed(2))
         } else if (newStatus === 'WON') {
           const effectivePayout = customPayout > 0 ? customPayout : bet.payout
@@ -126,7 +124,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
     if (userId) {
       const targetBet = updated.find(b => b.id === betId)
       
-      // 1. Actualizamos en la tabla 'bets'
+      // Se especifica solo los campos necesarios en update para no alterar created_at
       await supabase
         .from('bets')
         .update({
@@ -138,7 +136,6 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
         .eq('id', betId)
         .eq('user_id', userId)
 
-      // 2. ACTUALIZACIÓN AUTOMÁTICA DEL SALDO EN LA TABLA 'bookmakers' (LIQUIDACIÓN Y REAPERTURA)
       try {
         const bookmakerId = targetBet.bookmaker_id;
         
@@ -154,17 +151,14 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
             let balanceAdjustment = 0;
 
             if (newStatus === 'PENDING') {
-              // --- LÓGICA DE REAPERTURA (REVERTIR EL DINERO ABONADO ANTERIORMENTE) ---
               if (oldStatus === 'WON') {
-                balanceAdjustment = -currentBet.payout; // Quitamos el payout que se había sumado
+                balanceAdjustment = -currentBet.payout;
               } else if (oldStatus === 'CASHOUT') {
-                balanceAdjustment = -currentBet.cashout_amount; // Quitamos el dinero del cashout
+                balanceAdjustment = -currentBet.cashout_amount;
               } else if (oldStatus === 'VOID') {
-                balanceAdjustment = -currentBet.stake; // Quitamos el stake devuelto
+                balanceAdjustment = -currentBet.stake;
               }
-              // Si era 'LOST', no se había sumado nada al saldo al liquidarla, por lo que adjustment es 0.
             } else {
-              // --- LÓGICA DE LIQUIDACIÓN NORMAL ---
               if (newStatus === 'WON') {
                 balanceAdjustment = targetBet.payout; 
               } else if (newStatus === 'CASHOUT') {
