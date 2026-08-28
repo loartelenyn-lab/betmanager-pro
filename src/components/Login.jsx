@@ -32,11 +32,13 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
           email: data.user.email || email
         }
         onLoginSuccess(userData)
+      } else {
+        // CORRECCIÓN CLAVE: Asegurar que el estado de carga se libere si no hay sesión ni error explícito
+        setIsSubmitting(false)
       }
     } catch (error) {
       console.error('Error de autenticación:', error.message)
       setErrorMessage(error.message || 'Credenciales inválidas.')
-    } finally {
       setIsSubmitting(false)
     }
   }
