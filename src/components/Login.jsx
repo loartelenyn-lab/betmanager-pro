@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../supabase/client'
 
 export default function Login({ onLoginSuccess, onGoToLanding }) {
@@ -9,12 +9,34 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
   const [isHoveredBtn, setIsHoveredBtn] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
+  // Cargar el nombre guardado en localStorage al iniciar
+  useEffect(() => {
+    const savedName = localStorage.getItem('investor_name')
+    if (savedName) {
+      setName(savedName)
+    } else {
+      setName('Lenyn') // Sugerencia inicial por defecto
+    }
+  }, [])
+
+  // Manejar el cambio y persistirlo en tiempo real
+  const handleNameChange = (e) => {
+    const newName = e.target.value
+    setName(newName)
+    localStorage.setItem('investor_name', newName)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
     setErrorMessage('')
 
     try {
+      // Guardar el nombre final antes del envío
+      if (name.trim()) {
+        localStorage.setItem('investor_name', name.trim())
+      }
+
       // Autenticación estricta: validación real con Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -33,7 +55,6 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
         }
         onLoginSuccess(userData)
       } else {
-        // CORRECCIÓN CLAVE: Asegurar que el estado de carga se libere si no hay sesión ni error explícito
         setIsSubmitting(false)
       }
     } catch (error) {
@@ -220,9 +241,9 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
             </label>
             <input
               type="text"
-              placeholder="Ej: Inversor"
+              placeholder="Ej: Lenyn"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={handleNameChange}
               className="input-animated"
               style={{
                 width: '100%',
