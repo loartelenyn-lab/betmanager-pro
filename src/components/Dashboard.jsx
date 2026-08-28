@@ -48,7 +48,7 @@ export default function Dashboard({ user, onLogout }) {
         return;
       }
 
-      // Sincronización exacta del estatus de la caja de hoy usando la fecha de Perú (UTC-5)
+      // CORRECCIÓN 1: Sincronización del estatus de la caja usando la nueva estructura de `daily_closures`
       const todayStr = getPeruDateString();
       const { data: closureData, error: closureError } = await supabase
         .from('daily_closures')
@@ -66,12 +66,11 @@ export default function Dashboard({ user, onLogout }) {
         setIsCajaClosed(false);
       }
 
-      // 2. Obtener Casas de Apuestas (Bookmakers) del usuario autenticado
+      // CORRECCIÓN 2: Obtener Bookmakers sin filtrar 'is_active' (removido en la nueva DB)
       const { data: bookmakerData, error: bookError } = await supabase
         .from('bookmakers')
         .select('*')
-        .eq('user_id', currentUserId)
-        .eq('is_active', true);
+        .eq('user_id', currentUserId);
 
       if (bookError) {
         console.error("Error al cargar bookmakers:", bookError.message);
@@ -112,36 +111,30 @@ export default function Dashboard({ user, onLogout }) {
         avgStake: avgStakeVal
       });
 
-      // 4. Procesar Dinámicamente el P&L Diario usando fechas ISO completas (YYYY-MM-DD)
+      // 4. Procesar Dinámicamente el P&L Diario ajustando las fechas a la zona horaria de Perú (UTC-5)
       const daysMap = {};
       settledBets.forEach(bet => {
         const rawDate = new Date(bet.created_at);
         const peruDate = new Date(rawDate.getTime() - (5 * 60 * 60 * 1000));
+        const dayStr = String(peruDate.getDate()).padStart(2, '0');
         
-        // Clave ISO completa para diferenciar días de distintos meses o años
-        const fullDateKey = peruDate.toISOString().split('T')[0];
-        const dayLabel = String(peruDate.getDate()).padStart(2, '0');
-        
-        if (!daysMap[fullDateKey]) {
-          daysMap[fullDateKey] = { dateKey: fullDateKey, day: dayLabel, profit: 0, volume: 0, bets: 0 };
+        if (!daysMap[dayStr]) {
+          daysMap[dayStr] = { day: dayStr, profit: 0, volume: 0, bets: 0 };
         }
-        daysMap[fullDateKey].profit += Number(bet.profit_loss || 0);
-        daysMap[fullDateKey].volume += Number(bet.stake || 0);
-        daysMap[fullDateKey].bets += 1;
+        daysMap[dayStr].profit += Number(bet.profit_loss || 0);
+        daysMap[dayStr].volume += Number(bet.stake || 0);
+        daysMap[dayStr].bets += 1;
       });
 
-      // Ordenar cronológicamente por la fecha ISO completa
-      const sortedDays = Object.values(daysMap).sort((a, b) => a.dateKey.localeCompare(b.dateKey));
-
-      const processedDays = sortedDays.length > 0 
-        ? sortedDays
+      const processedDays = Object.keys(daysMap).length > 0 
+        ? Object.values(daysMap).sort((a, b) => a.day.localeCompare(b.day))
         : [
-            { dateKey: '01', day: '01', profit: 0, volume: 0, bets: 0 },
-            { dateKey: '05', day: '05', profit: 0, volume: 0, bets: 0 },
-            { dateKey: '10', day: '10', profit: 0, volume: 0, bets: 0 },
-            { dateKey: '15', day: '15', profit: 0, volume: 0, bets: 0 },
-            { dateKey: '20', day: '20', profit: 0, volume: 0, bets: 0 },
-            { dateKey: '26', day: '26', profit: 0, volume: 0, bets: 0 },
+            { day: '01', profit: 0, volume: 0, bets: 0 },
+            { day: '05', profit: 0, volume: 0, bets: 0 },
+            { day: '10', profit: 0, volume: 0, bets: 0 },
+            { day: '15', profit: 0, volume: 0, bets: 0 },
+            { day: '20', profit: 0, volume: 0, bets: 0 },
+            { day: '26', profit: 0, volume: 0, bets: 0 },
           ];
 
       setDailyData(processedDays);
@@ -221,7 +214,7 @@ export default function Dashboard({ user, onLogout }) {
         }
       `}</style>
 
-      {/* 1. BARRA SUPERIOR DE NAVEGACIÓN / HEADER */}
+      {/* 1. BARRA SUPERIOR DE NAVEGACIÓN / HEADER CON SALUDO ANIMADO */}
       <header style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -306,10 +299,10 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       </header>
 
-      {/* CONTENEDOR PRINCIPAL */}
+      {/* CONTENEDOR PRINCIPAL DEL DASHBOARD */}
       <main style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1400px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         
-        {/* 2. ESTADO Y ALERTA DE DISCIPLINA */}
+        {/* 2. CABECERA DE ESTADO Y ALERTA DE DISCIPLINA */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -353,7 +346,7 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        {/* 3. KPIS FINANCIEROS */}
+        {/* 3. TARJETAS DE KPIS FINANCIEROS GLOBALES */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
           <div style={kpiCardStyle} onMouseEnter={handleCardHover} onMouseLeave={handleCardLeave}>
             <span style={kpiLabelStyle}>Bankroll Total Actual</span>
@@ -392,7 +385,7 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        {/* 4. GRÁFICO DE P&L DIARIO Y SECCIONES DE INFORMACIÓN */}
+        {/* 4. GRÁFICO INTERACTIVO DE P&L DIARIO Y BLOQUES DE INTELIGENCIA */}
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
           
           <div style={{
@@ -463,7 +456,7 @@ export default function Dashboard({ user, onLogout }) {
 
                 return (
                   <div 
-                    key={item.dateKey || idx}
+                    key={idx}
                     onMouseEnter={() => setActiveTooltip(item)}
                     onMouseLeave={() => setActiveTooltip(null)}
                     style={{
@@ -499,12 +492,12 @@ export default function Dashboard({ user, onLogout }) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
                           <span style={{ color: '#94a3b8' }}>{isPositive ? 'Ganancia:' : 'Pérdida:'}</span>
                           <span style={{ fontWeight: '700', color: isPositive ? '#4ade80' : '#f87171' }}>
-                            {isPositive ? `+S/ ${item.profit.toFixed(2)}` : `-S/ ${Math.abs(item.profit).toFixed(2)}`}
+                            {isPositive ? `+S/ ${item.profit}` : `-S/ ${Math.abs(item.profit)}`}
                           </span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
                           <span style={{ color: '#94a3b8' }}>Volumen:</span>
-                          <span style={{ fontWeight: '600' }}>S/ {item.volume.toFixed(2)}</span>
+                          <span style={{ fontWeight: '600' }}>S/ {item.volume}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
                           <span style={{ color: '#94a3b8' }}>Boletos:</span>
@@ -575,9 +568,12 @@ export default function Dashboard({ user, onLogout }) {
             </div>
           </div>
 
-          {/* LIQUIDEZ Y PENDIENTES */}
+          {/* ========================================================================= */}
+          {/* APARTADO MEJORADO: LIQUIDEZ POR CASA DE APUESTAS Y APUESTAS PENDIENTES     */}
+          {/* ========================================================================= */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
+            {/* Tarjeta de Liquidez por Casa */}
             <div className="animated-panel" style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
@@ -623,6 +619,7 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
+            {/* Tarjeta de Apuestas Pendientes */}
             <div className="animated-panel" style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
