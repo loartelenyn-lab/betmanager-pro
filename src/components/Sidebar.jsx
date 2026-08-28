@@ -11,13 +11,15 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
 
   const sidebarBg = '#07090e'
   const textColor = '#f8fafc'
-  const textMuted = '#94a3b8'
   const borderColor = '#1e293b'
   const hoverBg = 'rgba(30, 41, 59, 0.6)'
   const activeBg = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
 
+  const userName = user?.name || user?.user_metadata?.full_name || 'Lenyn'
+  const userInitial = userName.charAt(0).toUpperCase()
+
   return (
-    <div style={{
+    <aside style={{
       width: '100%',
       height: '100%',
       backgroundColor: sidebarBg,
@@ -27,10 +29,11 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
       padding: '24px 14px',
       borderRight: `1px solid ${borderColor}`,
       boxSizing: 'border-box',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      userSelect: 'none'
     }}>
       
-      {/* ESTILOS CSS PARA ANIMACIONES Y OCULTAR SCROLLBAR */}
+      {/* ESTILOS CSS ANIMADOS Y SCROLLBAR PREMIUM */}
       <style>{`
         .sidebar-scroll::-webkit-scrollbar {
           width: 4px;
@@ -46,22 +49,29 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
           background: #334155;
         }
         .menu-btn {
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .menu-btn:hover {
           transform: translateX(4px);
         }
+        .menu-btn:active {
+          transform: translateX(2px) scale(0.98);
+        }
         .logout-card {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .logout-card:hover {
-          border-color: rgba(239, 68, 68, 0.5) !important;
-          box-shadow: 0 8px 25px rgba(239, 68, 68, 0.2);
+          border-color: rgba(239, 68, 68, 0.6) !important;
+          background-color: rgba(239, 68, 68, 0.16) !important;
+          box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
           transform: translateY(-2px);
+        }
+        .logout-card:active {
+          transform: translateY(0);
         }
       `}</style>
 
-      {/* CONTENEDOR CON SCROLLPANEL AUTOMÁTICO */}
+      {/* CONTENEDOR PRINCIPAL CON SCROLL FLUIDO */}
       <div className="sidebar-scroll" style={{
         flex: 1,
         overflowY: 'auto',
@@ -72,8 +82,9 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
         paddingRight: '4px'
       }}>
         
-        {/* PARTE SUPERIOR: LOGO Y MENÚ */}
+        {/* PARTE SUPERIOR: LOGO Y NAVEGACIÓN */}
         <div>
+          {/* LOGO DE LA PLATAFORMA */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px', paddingLeft: '6px' }}>
             <div style={{
               width: '40px',
@@ -84,12 +95,13 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '20px',
-              boxShadow: '0 0 20px rgba(37, 99, 235, 0.4)'
+              boxShadow: '0 0 20px rgba(37, 99, 235, 0.4)',
+              flexShrink: 0
             }}>
               🎯
             </div>
-            <div>
-              <h2 style={{ fontSize: '17px', fontWeight: '800', margin: 0, letterSpacing: '-0.5px', color: textColor }}>
+            <div style={{ overflow: 'hidden' }}>
+              <h2 style={{ fontSize: '17px', fontWeight: '800', margin: 0, letterSpacing: '-0.5px', color: textColor, lineHeight: 1.2 }}>
                 BetManager Pro
               </h2>
               <span style={{ fontSize: '10px', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: '700' }}>
@@ -98,12 +110,14 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
             </div>
           </div>
 
+          {/* MENÚ DE NAVEGACIÓN */}
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
             {menuItems.map((item) => {
               const isActive = currentScreen === item.id
               return (
                 <button
                   key={item.id}
+                  type="button"
                   onClick={() => onNavigate(item.id)}
                   className="menu-btn"
                   style={{
@@ -120,7 +134,8 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
                     fontWeight: isActive ? '700' : '500',
                     cursor: 'pointer',
                     textAlign: 'left',
-                    boxShadow: isActive ? '0 8px 25px rgba(37, 99, 235, 0.4)' : 'none'
+                    boxShadow: isActive ? '0 8px 25px rgba(37, 99, 235, 0.4)' : 'none',
+                    outline: 'none'
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) e.currentTarget.style.backgroundColor = hoverBg
@@ -129,19 +144,26 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
                     if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'
                   }}
                 >
-                  <span style={{ fontSize: '17px', filter: isActive ? 'drop-shadow(0 0 8px rgba(255,255,255,0.6))' : 'none' }}>
+                  <span style={{ 
+                    fontSize: '17px', 
+                    filter: isActive ? 'drop-shadow(0 0 8px rgba(255,255,255,0.6))' : 'none',
+                    lineHeight: 1
+                  }}>
                     {item.icon}
                   </span>
-                  <span>{item.label}</span>
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.label}
+                  </span>
                 </button>
               )
             })}
           </nav>
         </div>
 
-        {/* PARTE INFERIOR: PERFIL Y BOTÓN DE CERRAR SESIÓN */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', borderTop: `1px solid ${borderColor}`, paddingTop: '20px', marginTop: '10px' }}>
+        {/* PARTE INFERIOR: TARJETA DE USUARIO Y CERRAR SESIÓN */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: `1px solid ${borderColor}`, paddingTop: '20px', marginTop: '10px' }}>
           
+          {/* INFORMACIÓN DEL USUARIO */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', backgroundColor: hoverBg, borderRadius: '12px', border: `1px solid ${borderColor}` }}>
             <div style={{ 
               width: '34px', 
@@ -154,19 +176,24 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
               fontWeight: '800', 
               color: '#fff', 
               fontSize: '14px',
-              boxShadow: '0 0 12px rgba(37,99,235,0.5)'
+              boxShadow: '0 0 12px rgba(37,99,235,0.5)',
+              flexShrink: 0
             }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'L'}
+              {userInitial}
             </div>
             <div style={{ overflow: 'hidden' }}>
               <p style={{ fontSize: '13px', fontWeight: '700', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: textColor }}>
-                {user?.name || 'Lenyn'}
+                {userName}
               </p>
-              <p style={{ fontSize: '11px', color: '#4ade80', margin: 0, fontWeight: '600' }}>● Sesión Activa</p>
+              <p style={{ fontSize: '11px', color: '#4ade80', margin: 0, fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '8px' }}>●</span> Sesión Activa
+              </p>
             </div>
           </div>
 
+          {/* BOTÓN CERRAR SESIÓN */}
           <button
+            type="button"
             onClick={onLogout}
             className="logout-card"
             style={{
@@ -183,10 +210,11 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
               fontSize: '13px',
               fontWeight: '700',
               cursor: 'pointer',
-              marginBottom: '6px'
+              marginBottom: '4px',
+              outline: 'none'
             }}
           >
-            <span style={{ fontSize: '16px' }}>🚪</span>
+            <span style={{ fontSize: '16px', lineHeight: 1 }}>🚪</span>
             <span>Cerrar Sesión</span>
           </button>
 
@@ -194,6 +222,6 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
 
       </div>
 
-    </div>
+    </aside>
   )
 }
