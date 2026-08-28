@@ -10,8 +10,6 @@ import Calculators from './components/Calculators'
 import Reports from './components/Reports'
 import Admin from './components/Admin'
 
-// TIEMPO DE INACTIVIDAD LÍMITE (Ejemplo: 15 minutos en milisegundos)
-// Puedes cambiarlo si prefieres otro tiempo (por ejemplo, 30 minutos = 30 * 60 * 1000)
 const INACTIVITY_LIMIT = 15 * 60 * 1000 
 
 export default function App() {
@@ -28,7 +26,6 @@ export default function App() {
     return localStorage.getItem('betManager_theme') || 'dark'
   })
 
-  // Función global para cerrar sesión y limpiar todo
   const handleLogout = () => {
     setUser(null)
     setCurrentScreen('landing')
@@ -41,7 +38,6 @@ export default function App() {
   useEffect(() => {
     if (!user) return
 
-    // Verificar si el tiempo ya expiró al recargar la página (F5) o abrirla de nuevo
     const lastActivity = localStorage.getItem('betManager_lastActivity')
     const now = Date.now()
 
@@ -50,25 +46,22 @@ export default function App() {
       return
     }
 
-    // Actualizar la marca de tiempo de actividad
     const updateActivity = () => {
       localStorage.setItem('betManager_lastActivity', Date.now().toString())
     }
 
-    // Eventos que detectan interacción del usuario
     const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart']
     
     events.forEach(event => {
       window.addEventListener(event, updateActivity)
     })
 
-    // Intervalo periódico para revisar si el tiempo límite se cumplió estando sin interacción
     const interval = setInterval(() => {
       const storedActivity = localStorage.getItem('betManager_lastActivity')
       if (storedActivity && Date.now() - parseInt(storedActivity, 10) > INACTIVITY_LIMIT) {
         handleLogout()
       }
-    }, 30000) // Revisa cada 30 segundos
+    }, 30000)
 
     return () => {
       events.forEach(event => {
@@ -78,11 +71,10 @@ export default function App() {
     }
   }, [user])
 
-  // 2. Sincronización con localStorage
+  // 2. SINCRONIZACIÓN CON LOCALSTORAGE
   useEffect(() => {
     if (user) {
       localStorage.setItem('betManager_user', JSON.stringify(user))
-      // Inicializar registro de actividad si el usuario acaba de iniciar sesión
       if (!localStorage.getItem('betManager_lastActivity')) {
         localStorage.setItem('betManager_lastActivity', Date.now().toString())
       }
@@ -145,7 +137,25 @@ export default function App() {
       boxSizing: 'border-box' 
     }}>
       
-      <div style={{ width: '260px', flexShrink: '0', height: '100vh', borderRight: `1px solid ${currentTheme.border}` }}>
+      {/* ESTILOS DE SCROLLBAR GLOBAL PARA EL CONTENEDOR DE CONTENIDO */}
+      <style>{`
+        .main-content-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        .main-content-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .main-content-scroll::-webkit-scrollbar-thumb {
+          background: ${theme === 'dark' ? '#1e293b' : '#cbd5e1'};
+          border-radius: 6px;
+        }
+        .main-content-scroll::-webkit-scrollbar-thumb:hover {
+          background: ${theme === 'dark' ? '#334155' : '#94a3b8'};
+        }
+      `}</style>
+
+      {/* CONTENEDOR LATERAL DEL SIDEBAR */}
+      <div style={{ width: '260px', flexShrink: 0, height: '100vh', borderRight: `1px solid ${currentTheme.border}` }}>
         <Sidebar 
           currentScreen={currentScreen} 
           onNavigate={setCurrentScreen} 
@@ -156,7 +166,14 @@ export default function App() {
         />
       </div>
 
-      <div style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: currentTheme.bgMain, color: currentTheme.textMain }}>
+      {/* ÁREA DE CONTENIDO PRINCIPAL CON SCROLL INDEPENDIENTE */}
+      <main className="main-content-scroll" style={{ 
+        flex: 1, 
+        height: '100vh', 
+        overflowY: 'auto', 
+        backgroundColor: currentTheme.bgMain, 
+        color: currentTheme.textMain 
+      }}>
         {currentScreen === 'dashboard' && <Dashboard userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={currentTheme} />}
         {currentScreen === 'betform' && <BetForm userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={currentTheme} />}
         {currentScreen === 'settlement' && <Settlement userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={currentTheme} />}
@@ -164,7 +181,7 @@ export default function App() {
         {currentScreen === 'calculators' && <Calculators userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={currentTheme} />}
         {currentScreen === 'reports' && <Reports userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={currentTheme} />}
         {currentScreen === 'admin' && <Admin userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={theme} setTheme={setTheme} />}
-      </div>
+      </main>
       
     </div>
   )
