@@ -127,6 +127,7 @@ export default function Dashboard({ user, onLogout }) {
         daysMap[dayStr].bets += 1;
       });
 
+      // Asegurar que si hay registros recientes (como ayer y hoy), ambos días aparezcan ordenados correctamente
       const processedDays = Object.keys(daysMap).length > 0 
         ? Object.values(daysMap).sort((a, b) => a.day.localeCompare(b.day))
         : [
@@ -570,7 +571,7 @@ export default function Dashboard({ user, onLogout }) {
           </div>
 
           {/* ========================================================================= */}
-          {/* APARTADO MEJORADO: LIQUIDEZ POR CASA DE APUESTAS Y APUESTAS PENDIENTES     */}
+          {/* APARTADO DE LIQUIDEZ POR CASA DE APUESTAS Y APUESTAS PENDIENTES           */}
           {/* ========================================================================= */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
