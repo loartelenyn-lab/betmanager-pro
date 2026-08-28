@@ -530,7 +530,7 @@ export default function Dashboard({ user, onLogout }) {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
                           <span style={{ color: '#94a3b8' }}>Volumen:</span>
-                          <span style={{ fontWeight: '600' }}>S/ {item.volume}</span>
+                          <span style={{ fontWeight: '600' }}>S/ {Number(item.volume).toFixed(2)}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
                           <span style={{ color: '#94a3b8' }}>Boletos:</span>
