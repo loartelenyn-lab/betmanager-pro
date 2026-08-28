@@ -12,12 +12,17 @@ export default function Dashboard({ user, onLogout }) {
   // Estado para el control de la caja sincronizado con Supabase
   const [isCajaClosed, setIsCajaClosed] = useState(false)
   const [activeTooltip, setActiveTooltip] = useState(null)
+  const [activeTooltipChart2, setActiveTooltipChart2] = useState(null)
 
   // Estados reales conectados a Supabase
   const [loading, setLoading] = useState(true)
   const [bookmakers, setBookmakers] = useState([])
   const [pendingBets, setPendingBets] = useState([])
+  const [recentBets, setRecentBets] = useState([]) // NUEVO: Estado para últimas apuestas resueltas
   const [dailyData, setDailyData] = useState([])
+  const [cumulativeBankrollData, setCumulativeBankrollData] = useState([]) // NUEVO: Datos Gráfico 2
+  const [betTypeStats, setBetTypeStats] = useState([]) // NUEVO: Datos Gráfico 3
+  
   const [kpis, setKpis] = useState({
     bankroll: '0.00',
     netProfit: '0.00',
@@ -27,7 +32,7 @@ export default function Dashboard({ user, onLogout }) {
     avgStake: '0.00'
   })
 
-  // Sincronización robusta con Supabase al montar o cambiar el usuario
+  // Sincronización con Supabase
   useEffect(() => {
     fetchDashboardData();
   }, [user]);
@@ -36,7 +41,6 @@ export default function Dashboard({ user, onLogout }) {
     try {
       setLoading(true);
 
-      // 1. Obtener y asegurar el ID del usuario actual de manera segura
       let currentUserId = user?.id;
       if (!currentUserId) {
         const { data: authData } = await supabase.auth.getUser();
@@ -48,7 +52,7 @@ export default function Dashboard({ user, onLogout }) {
         return;
       }
 
-      // CORRECCIÓN 1: Sincronización del estatus de la caja usando la nueva estructura de `daily_closures`
+      // 1. Sincronización del estatus de la caja
       const todayStr = getPeruDateString();
       const { data: closureData, error: closureError } = await supabase
         .from('daily_closures')
@@ -56,43 +60,36 @@ export default function Dashboard({ user, onLogout }) {
         .eq('user_id', currentUserId)
         .eq('closure_date', todayStr);
 
-      if (closureError) {
-        console.error("Error al verificar cierre de caja:", closureError.message);
-      }
+      if (closureError) console.error("Error al verificar cierre de caja:", closureError.message);
+      setIsCajaClosed(closureData && closureData.length > 0);
 
-      if (closureData && closureData.length > 0) {
-        setIsCajaClosed(true);
-      } else {
-        setIsCajaClosed(false);
-      }
-
-      // CORRECCIÓN 2: Obtener Bookmakers sin filtrar 'is_active' (removido en la nueva DB)
+      // 2. Obtener Bookmakers
       const { data: bookmakerData, error: bookError } = await supabase
         .from('bookmakers')
         .select('*')
         .eq('user_id', currentUserId);
 
-      if (bookError) {
-        console.error("Error al cargar bookmakers:", bookError.message);
-      }
+      if (bookError) console.error("Error al cargar bookmakers:", bookError.message);
       setBookmakers(bookmakerData || []);
 
       const totalBankroll = (bookmakerData || []).reduce((acc, b) => acc + Number(b.current_balance || 0), 0);
 
-      // 3. Obtener Apuestas (Bets) para calcular KPIs, pendientes y P&L diario
+      // 3. Obtener Apuestas
       const { data: betsData, error: betsError } = await supabase
         .from('bets')
         .select('*')
-        .eq('user_id', currentUserId);
+        .eq('user_id', currentUserId)
+        .order('created_at', { ascending: false });
 
-      if (betsError) {
-        console.error("Error al cargar apuestas:", betsError.message);
-      }
+      if (betsError) console.error("Error al cargar apuestas:", betsError.message);
 
       const allBets = betsData || [];
       const settledBets = allBets.filter(b => b.status === 'WON' || b.status === 'LOST' || b.status === 'CASHOUT');
       const pending = allBets.filter(b => b.status === 'PENDING');
+      
       setPendingBets(pending);
+      // NUEVO: Guardar las últimas 5 apuestas resueltas para el nuevo apartado
+      setRecentBets(settledBets.slice(0, 5));
 
       const totalProfit = settledBets.reduce((acc, b) => acc + Number(b.profit_loss || 0), 0);
       const totalStaked = settledBets.reduce((acc, b) => acc + Number(b.stake || 0), 0);
@@ -111,7 +108,7 @@ export default function Dashboard({ user, onLogout }) {
         avgStake: avgStakeVal
       });
 
-      // 4. Procesar Dinámicamente el P&L Diario ajustando las fechas a la zona horaria de Perú (UTC-5)
+      // 4. Procesar P&L Diario (Gráfico 1 Original)
       const daysMap = {};
       settledBets.forEach(bet => {
         const rawDate = new Date(bet.created_at);
@@ -134,10 +131,41 @@ export default function Dashboard({ user, onLogout }) {
             { day: '10', profit: 0, volume: 0, bets: 0 },
             { day: '15', profit: 0, volume: 0, bets: 0 },
             { day: '20', profit: 0, volume: 0, bets: 0 },
-            { day: '26', profit: 0, volume: 0, bets: 0 },
+            { day: '28', profit: 0.5, volume: 0.3, bets: 1 },
           ];
 
       setDailyData(processedDays);
+
+      // NUEVO: Procesar Crecimiento Acumulado del Bankroll (Gráfico 2)
+      let runningBankroll = totalBankroll - totalProfit;
+      const bankrollTrend = processedDays.map(item => {
+        runningBankroll += item.profit;
+        return {
+          day: item.day,
+          bankroll: Number(runningBankroll.toFixed(2)),
+          profit: item.profit
+        };
+      });
+      setCumulativeBankrollData(bankrollTrend);
+
+      // NUEVO: Procesar Distribución por Tipo de Apuesta (Gráfico 3)
+      const typeMap = { SIMPLE: { total: 0, won: 0 }, PARLAY: { total: 0, won: 0 }, BETBUILDER: { total: 0, won: 0 } };
+      settledBets.forEach(bet => {
+        const type = bet.bet_type || 'SIMPLE';
+        if (typeMap[type]) {
+          typeMap[type].total += 1;
+          if (bet.status === 'WON') typeMap[type].won += 1;
+        }
+      });
+
+      const totalSettledCount = settledBets.length || 1;
+      const typeStatsArray = Object.keys(typeMap).map(type => {
+        const count = typeMap[type].total;
+        const percentage = Math.round((count / totalSettledCount) * 100);
+        const winRate = count > 0 ? Math.round((typeMap[type].won / count) * 100) : 0;
+        return { type, count, percentage, winRate };
+      });
+      setBetTypeStats(typeStatsArray);
 
     } catch (error) {
       console.error('Error general al cargar datos del Dashboard:', error.message);
@@ -183,6 +211,11 @@ export default function Dashboard({ user, onLogout }) {
           70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
           100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
         }
+        @keyframes glowBorder {
+          0% { border-color: rgba(56, 189, 248, 0.2); }
+          50% { border-color: rgba(168, 85, 247, 0.5); }
+          100% { border-color: rgba(56, 189, 248, 0.2); }
+        }
         .greeting-badge {
           animation: fadeInSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards, pulseGlow 4s infinite ease-in-out;
         }
@@ -194,16 +227,13 @@ export default function Dashboard({ user, onLogout }) {
           border-color: rgba(56, 189, 248, 0.35);
           box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 20px rgba(37, 99, 235, 0.15);
         }
-        .bookmaker-row {
+        .bookmaker-row, .pending-card-item, .recent-card-item {
           transition: all 0.25s ease;
         }
-        .bookmaker-row:hover {
-          background: rgba(30, 41, 59, 0.6);
+        .bookmaker-row:hover, .recent-card-item:hover {
+          background: rgba(30, 41, 59, 0.7);
           border-color: rgba(56, 189, 248, 0.4);
           transform: translateX(4px);
-        }
-        .pending-card-item {
-          transition: all 0.25s ease;
         }
         .pending-card-item:hover {
           background: rgba(30, 41, 59, 0.7);
@@ -212,9 +242,15 @@ export default function Dashboard({ user, onLogout }) {
         .live-dot {
           animation: livePulse 2s infinite;
         }
+        .chart-card-animated {
+          animation: glowBorder 6s infinite ease-in-out;
+        }
+        .progress-bar-fill {
+          transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
       `}</style>
 
-      {/* 1. BARRA SUPERIOR DE NAVEGACIÓN / HEADER CON SALUDO ANIMADO */}
+      {/* 1. BARRA SUPERIOR DE NAVEGACIÓN */}
       <header style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -299,10 +335,10 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       </header>
 
-      {/* CONTENEDOR PRINCIPAL DEL DASHBOARD */}
+      {/* CONTENEDOR PRINCIPAL */}
       <main style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1400px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         
-        {/* 2. CABECERA DE ESTADO Y ALERTA DE DISCIPLINA */}
+        {/* 2. CABECERA DE ESTADO */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -346,7 +382,7 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        {/* 3. TARJETAS DE KPIS FINANCIEROS GLOBALES */}
+        {/* 3. KPIS FINANCIEROS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
           <div style={kpiCardStyle} onMouseEnter={handleCardHover} onMouseLeave={handleCardLeave}>
             <span style={kpiLabelStyle}>Bankroll Total Actual</span>
@@ -385,195 +421,361 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        {/* 4. GRÁFICO INTERACTIVO DE P&L DIARIO Y BLOQUES DE INTELIGENCIA */}
+        {/* 4. DISPOSICIÓN EN GRILLA: COLUMNA IZQUIERDA (GRÁFICOS) | COLUMNA DERECHA (TARJETAS) */}
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
           
-          <div style={{
-            backgroundColor: '#0f172a',
-            border: '1px solid #1e293b',
-            borderRadius: '16px',
-            padding: '28px',
-            paddingTop: '40px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
-            position: 'relative',
-            overflow: 'hidden'
-          }}>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', zIndex: 2 }}>
-              <div>
-                <h3 style={{ fontSize: '17px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px' }}>
-                  Evolución de P&L Diario ({capitalizedMonth})
-                </h3>
-                <p style={{ fontSize: '13px', color: '#94a3b8' }}>Rendimiento neto por jornada y comportamiento financiero</p>
+          {/* COLUMNA IZQUIERDA DE GRÁFICOS */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+            {/* GRÁFICO 1: EVOLUCIÓN DE P&L DIARIO (INTACTO DE LA PRIMERA IMAGEN) */}
+            <div style={{
+              backgroundColor: '#0f172a',
+              border: '1px solid #1e293b',
+              borderRadius: '16px',
+              padding: '28px',
+              paddingTop: '40px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', zIndex: 2 }}>
+                <div>
+                  <h3 style={{ fontSize: '17px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px' }}>
+                    Evolución de P&L Diario ({capitalizedMonth})
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#94a3b8' }}>Rendimiento neto por jornada y comportamiento financiero</p>
+                </div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  fontWeight: '600',
+                  backgroundColor: 'rgba(37, 99, 235, 0.12)', 
+                  color: '#60a5fa', 
+                  padding: '7px 14px', 
+                  borderRadius: '8px', 
+                  border: '1px solid rgba(37, 99, 235, 0.3)',
+                  textTransform: 'capitalize'
+                }}>
+                  {currentMonthYearBadge} 📅
+                </div>
               </div>
+
               <div style={{ 
-                fontSize: '12px', 
-                fontWeight: '600',
-                backgroundColor: 'rgba(37, 99, 235, 0.12)', 
-                color: '#60a5fa', 
-                padding: '7px 14px', 
-                borderRadius: '8px', 
-                border: '1px solid rgba(37, 99, 235, 0.3)',
-                textTransform: 'capitalize'
+                height: '220px', 
+                display: 'flex', 
+                alignItems: 'flex-end', 
+                justifyContent: 'space-around', 
+                position: 'relative', 
+                paddingBottom: '24px', 
+                borderBottom: '1px solid #1e293b',
+                zIndex: 2 
               }}>
-                {currentMonthYearBadge} 📅
+                
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '50%', 
+                  left: 0, 
+                  right: 0, 
+                  borderTop: '1px dashed rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  pointerEvents: 'none'
+                }}>
+                  <span style={{ fontSize: '10px', color: '#64748b', backgroundColor: '#0f172a', padding: '0 6px', fontWeight: '600' }}>
+                    Break-Even (S/ 0.00)
+                  </span>
+                </div>
+
+                {dailyData.map((item, idx) => {
+                  const isPositive = item.profit >= 0;
+                  const barHeight = Math.max(Math.min(Math.abs(item.profit) * 1.3, 90), 8);
+
+                  return (
+                    <div 
+                      key={idx}
+                      onMouseEnter={() => setActiveTooltip(item)}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '10px',
+                        cursor: 'pointer',
+                        position: 'relative',
+                        height: '100%',
+                        justifyContent: 'flex-end',
+                        flex: 1
+                      }}
+                    >
+                      {activeTooltip === item && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '10%',
+                          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                          backdropFilter: 'blur(16px)',
+                          border: `1px solid ${isPositive ? '#38bdf8' : '#ef4444'}`,
+                          padding: '12px 16px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          color: '#ffffff',
+                          whiteSpace: 'nowrap',
+                          zIndex: 20,
+                          boxShadow: `0 15px 30px rgba(0,0,0,0.6), 0 0 20px ${isPositive ? 'rgba(56, 189, 248, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+                        }}>
+                          <div style={{ fontWeight: '700', color: '#38bdf8', marginBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}>
+                            Jornada - Día {item.day}
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
+                            <span style={{ color: '#94a3b8' }}>{isPositive ? 'Ganancia:' : 'Pérdida:'}</span>
+                            <span style={{ fontWeight: '700', color: isPositive ? '#4ade80' : '#f87171' }}>
+                              {isPositive ? `+S/ ${item.profit}` : `-S/ ${Math.abs(item.profit)}`}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
+                            <span style={{ color: '#94a3b8' }}>Volumen:</span>
+                            <span style={{ fontWeight: '600' }}>S/ {item.volume}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                            <span style={{ color: '#94a3b8' }}>Boletos:</span>
+                            <span style={{ fontWeight: '600' }}>{item.bets} jugadas</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{
+                        width: '32px',
+                        height: `${barHeight}px`,
+                        background: isPositive 
+                          ? 'linear-gradient(180deg, #38bdf8 0%, #2563eb 100%)' 
+                          : 'linear-gradient(180deg, #f87171 0%, #dc2626 100%)',
+                        borderRadius: '8px',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: isPositive ? '0 0 20px rgba(37, 99, 235, 0.5)' : '0 0 20px rgba(239, 68, 68, 0.5)',
+                        transform: activeTooltip === item ? 'scaleY(1.08) scaleX(1.05)' : 'scaleY(1) scaleX(1)'
+                      }} />
+
+                      <span style={{ fontSize: '12px', color: activeTooltip === item ? '#ffffff' : '#94a3b8' }}>
+                        Día {item.day}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '18px', fontSize: '13px', zIndex: 2 }}>
+                <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>💡</span> Pasa el cursor sobre las barras para desplegar la ganancia o pérdida exacta del día.
+                </span>
+                
+                {(() => {
+                  let streakCount = 0;
+                  let isPositiveStreak = true;
+                  
+                  if (dailyData.length > 0) {
+                    const lastDayPositive = dailyData[dailyData.length - 1].profit >= 0;
+                    isPositiveStreak = lastDayPositive;
+                    
+                    for (let i = dailyData.length - 1; i >= 0; i--) {
+                      if ((dailyData[i].profit >= 0) === lastDayPositive) {
+                        streakCount++;
+                      } else {
+                        break;
+                      }
+                    }
+                  }
+
+                  return (
+                    <div style={{
+                      color: isPositiveStreak ? '#4ade80' : '#f87171',
+                      fontWeight: '700',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      backgroundColor: isPositiveStreak ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                      padding: '6px 14px',
+                      borderRadius: '10px',
+                      border: `1px solid ${isPositiveStreak ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+                    }}>
+                      <span>{isPositiveStreak ? '🔥' : '⚠️'}</span>
+                      <span>Racha Actual: {streakCount} Días en {isPositiveStreak ? 'Positivo' : 'Negativo'}</span>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
-            <div style={{ 
-              height: '220px', 
-              display: 'flex', 
-              alignItems: 'flex-end', 
-              justifyContent: 'space-around', 
-              position: 'relative', 
-              paddingBottom: '24px', 
-              borderBottom: '1px solid #1e293b',
-              zIndex: 2 
+            {/* ========================================================================= */}
+            {/* NUEVO GRÁFICO 2: CRECIMIENTO Y CURVA DE BANKROLL ACUMULADO                 */}
+            {/* ========================================================================= */}
+            <div className="animated-panel chart-card-animated" style={{
+              backgroundColor: '#0f172a',
+              border: '1px solid rgba(56, 189, 248, 0.2)',
+              borderRadius: '16px',
+              padding: '28px',
+              boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px'
             }}>
-              
-              <div style={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: 0, 
-                right: 0, 
-                borderTop: '1px dashed rgba(255, 255, 255, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                pointerEvents: 'none'
-              }}>
-                <span style={{ fontSize: '10px', color: '#64748b', backgroundColor: '#0f172a', padding: '0 6px', fontWeight: '600' }}>
-                  Break-Even (S/ 0.00)
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#38bdf8' }}>📈</span> Crecimiento Acumulado del Bankroll
+                  </h3>
+                  <p style={{ fontSize: '12.5px', color: '#94a3b8' }}>Evolución progresiva del capital global disponible</p>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                  Tendencia Positiva ⚡
                 </span>
               </div>
 
-              {dailyData.map((item, idx) => {
-                const isPositive = item.profit >= 0;
-                const barHeight = Math.max(Math.min(Math.abs(item.profit) * 1.3, 90), 8);
+              {/* Área interactiva de tendencia del Bankroll */}
+              <div style={{
+                height: '180px',
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'space-between',
+                padding: '0 20px 20px 20px',
+                backgroundColor: 'rgba(7, 9, 14, 0.6)',
+                borderRadius: '12px',
+                border: '1px solid rgba(255,255,255,0.05)',
+                position: 'relative'
+              }}>
+                {cumulativeBankrollData.map((item, idx) => {
+                  const maxVal = Math.max(...cumulativeBankrollData.map(d => d.bankroll), 15);
+                  const minVal = Math.min(...cumulativeBankrollData.map(d => d.bankroll), 0);
+                  const range = (maxVal - minVal) || 1;
+                  const heightPercent = Math.max(((item.bankroll - minVal) / range) * 75 + 15, 12);
 
-                return (
-                  <div 
-                    key={idx}
-                    onMouseEnter={() => setActiveTooltip(item)}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '10px',
-                      cursor: 'pointer',
-                      position: 'relative',
-                      height: '100%',
-                      justifyContent: 'flex-end',
-                      flex: 1
-                    }}
-                  >
-                    {activeTooltip === item && (
+                  return (
+                    <div key={idx}
+                      onMouseEnter={() => setActiveTooltipChart2(item)}
+                      onMouseLeave={() => setActiveTooltipChart2(null)}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        height: '100%',
+                        flex: 1,
+                        position: 'relative',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {activeTooltipChart2 === item && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '-45px',
+                          backgroundColor: '#0f172a',
+                          border: '1px solid #38bdf8',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          color: '#ffffff',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 10px 25px rgba(56, 189, 248, 0.4)',
+                          zIndex: 10
+                        }}>
+                          <strong>Día {item.day}:</strong> S/ {item.bankroll.toFixed(2)}
+                        </div>
+                      )}
+
                       <div style={{
-                        position: 'absolute',
-                        top: '10%',
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        backdropFilter: 'blur(16px)',
-                        border: `1px solid ${isPositive ? '#38bdf8' : '#ef4444'}`,
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        color: '#ffffff',
-                        whiteSpace: 'nowrap',
-                        zIndex: 20,
-                        boxShadow: `0 15px 30px rgba(0,0,0,0.6), 0 0 20px ${isPositive ? 'rgba(56, 189, 248, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
-                      }}>
-                        <div style={{ fontWeight: '700', color: '#38bdf8', marginBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}>
-                          Jornada - Día {item.day}
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
-                          <span style={{ color: '#94a3b8' }}>{isPositive ? 'Ganancia:' : 'Pérdida:'}</span>
-                          <span style={{ fontWeight: '700', color: isPositive ? '#4ade80' : '#f87171' }}>
-                            {isPositive ? `+S/ ${item.profit}` : `-S/ ${Math.abs(item.profit)}`}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
-                          <span style={{ color: '#94a3b8' }}>Volumen:</span>
-                          <span style={{ fontWeight: '600' }}>S/ {item.volume}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-                          <span style={{ color: '#94a3b8' }}>Boletos:</span>
-                          <span style={{ fontWeight: '600' }}>{item.bets} jugadas</span>
-                        </div>
+                        width: '12px',
+                        height: `${heightPercent}%`,
+                        background: 'linear-gradient(180deg, #a855f7 0%, #2563eb 100%)',
+                        borderRadius: '6px 6px 0 0',
+                        boxShadow: '0 0 15px rgba(168, 85, 247, 0.4)',
+                        transition: 'all 0.3s ease',
+                        transform: activeTooltipChart2 === item ? 'scaleX(1.3)' : 'scaleX(1)'
+                      }} />
+                      <span style={{ fontSize: '11px', color: '#64748b', marginTop: '8px' }}>Día {item.day}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ========================================================================= */}
+            {/* NUEVO GRÁFICO 3: DISTRIBUCIÓN Y RENDIMIENTO POR TIPO DE APUESTA          */}
+            {/* ========================================================================= */}
+            <div className="animated-panel chart-card-animated" style={{
+              backgroundColor: '#0f172a',
+              border: '1px solid rgba(168, 85, 247, 0.2)',
+              borderRadius: '16px',
+              padding: '28px',
+              boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#a855f7' }}>🎯</span> Distribución por Tipo de Apuesta
+                  </h3>
+                  <p style={{ fontSize: '12.5px', color: '#94a3b8' }}>Proporción de volumen y tasa de acierto por categoría</p>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: '700', backgroundColor: 'rgba(168, 85, 247, 0.12)', color: '#a855f7', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                  Análisis Táctico 📊
+                </span>
+              </div>
+
+              {/* Barras de distribución animadas */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {betTypeStats.map((item, idx) => {
+                  const colors = {
+                    SIMPLE: { gradient: 'linear-gradient(90deg, #38bdf8 0%, #2563eb 100%)', shadow: 'rgba(56, 189, 248, 0.4)' },
+                    PARLAY: { gradient: 'linear-gradient(90deg, #a855f7 0%, #7c3aed 100%)', shadow: 'rgba(168, 85, 247, 0.4)' },
+                    BETBUILDER: { gradient: 'linear-gradient(90deg, #4ade80 0%, #059669 100%)', shadow: 'rgba(74, 222, 128, 0.4)' }
+                  };
+                  const styleColor = colors[item.type] || colors.SIMPLE;
+
+                  return (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', fontWeight: '700' }}>
+                        <span style={{ color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: styleColor.gradient }}></span>
+                          {item.type} ({item.count} jugadas)
+                        </span>
+                        <span style={{ color: '#94a3b8' }}>
+                          Volumen: <strong style={{ color: '#ffffff' }}>{item.percentage}%</strong> | WinRate: <strong style={{ color: '#4ade80' }}>{item.winRate}%</strong>
+                        </span>
                       </div>
-                    )}
-
-                    <div style={{
-                      width: '32px',
-                      height: `${barHeight}px`,
-                      background: isPositive 
-                        ? 'linear-gradient(180deg, #38bdf8 0%, #2563eb 100%)' 
-                        : 'linear-gradient(180deg, #f87171 0%, #dc2626 100%)',
-                      borderRadius: '8px',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: isPositive ? '0 0 20px rgba(37, 99, 235, 0.5)' : '0 0 20px rgba(239, 68, 68, 0.5)',
-                      transform: activeTooltip === item ? 'scaleY(1.08) scaleX(1.05)' : 'scaleY(1) scaleX(1)'
-                    }} />
-
-                    <span style={{ fontSize: '12px', color: activeTooltip === item ? '#ffffff' : '#94a3b8' }}>
-                      Día {item.day}
-                    </span>
-                  </div>
-                );
-              })}
+                      <div style={{
+                        width: '100%',
+                        height: '10px',
+                        backgroundColor: '#07090e',
+                        borderRadius: '20px',
+                        overflow: 'hidden',
+                        border: '1px solid rgba(255,255,255,0.05)'
+                      }}>
+                        <div className="progress-bar-fill" style={{
+                          width: `${Math.max(item.percentage, 5)}%`,
+                          height: '100%',
+                          background: styleColor.gradient,
+                          borderRadius: '20px',
+                          boxShadow: `0 0 12px ${styleColor.shadow}`
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '18px', fontSize: '13px', zIndex: 2 }}>
-              <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>💡</span> Pasa el cursor sobre las barras para desplegar la ganancia o pérdida exacta del día.
-              </span>
-              
-              {(() => {
-                let streakCount = 0;
-                let isPositiveStreak = true;
-                
-                if (dailyData.length > 0) {
-                  const lastDayPositive = dailyData[dailyData.length - 1].profit >= 0;
-                  isPositiveStreak = lastDayPositive;
-                  
-                  for (let i = dailyData.length - 1; i >= 0; i--) {
-                    if ((dailyData[i].profit >= 0) === lastDayPositive) {
-                      streakCount++;
-                    } else {
-                      break;
-                    }
-                  }
-                }
-
-                return (
-                  <div style={{
-                    color: isPositiveStreak ? '#4ade80' : '#f87171',
-                    fontWeight: '700',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    backgroundColor: isPositiveStreak ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                    padding: '6px 14px',
-                    borderRadius: '10px',
-                    border: `1px solid ${isPositiveStreak ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
-                  }}>
-                    <span>{isPositiveStreak ? '🔥' : '⚠️'}</span>
-                    <span>Racha Actual: {streakCount} Días en {isPositiveStreak ? 'Positivo' : 'Negativo'}</span>
-                  </div>
-                );
-              })()}
-            </div>
           </div>
 
           {/* ========================================================================= */}
-          {/* APARTADO MEJORADO: LIQUIDEZ POR CASA DE APUESTAS Y APUESTAS PENDIENTES     */}
+          {/* COLUMNA DERECHA: LIQUIDEZ | APUESTAS PENDIENTES | ÚLTIMAS APUESTAS         */}
           {/* ========================================================================= */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
-            {/* Tarjeta de Liquidez por Casa */}
+            {/* 1. Liquidez por Casa de Apuestas */}
             <div className="animated-panel" style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
@@ -619,17 +821,14 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* Tarjeta de Apuestas Pendientes */}
+            {/* 2. Apuestas Pendientes */}
             <div className="animated-panel" style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
               borderRadius: '16px',
               padding: '22px',
               boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-              backdropFilter: 'blur(12px)',
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column'
+              backdropFilter: 'blur(12px)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#f8fafc', letterSpacing: '0.3px' }}>
@@ -648,7 +847,7 @@ export default function Dashboard({ user, onLogout }) {
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: pendingBets.length === 0 ? 'center' : 'flex-start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {pendingBets.length > 0 ? (
                   pendingBets.slice(0, 3).map((bet) => (
                     <div key={bet.id} className="pending-card-item" style={{ 
@@ -678,7 +877,7 @@ export default function Dashboard({ user, onLogout }) {
                     fontSize: '12px', 
                     color: '#64748b', 
                     textAlign: 'center', 
-                    padding: '24px 12px', 
+                    padding: '20px 12px', 
                     background: '#07090e', 
                     borderRadius: '10px', 
                     border: '1px dashed #1e293b',
@@ -689,6 +888,101 @@ export default function Dashboard({ user, onLogout }) {
                   }}>
                     <span style={{ fontSize: '18px' }}>🎯</span>
                     <span>No hay apuestas pendientes en este momento</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ========================================================================= */}
+            {/* NUEVO APARTADO: ÚLTIMAS APUESTAS (DEBAJO DE APUESTAS PENDIENTES)         */}
+            {/* ========================================================================= */}
+            <div className="animated-panel" style={{
+              backgroundColor: '#0f172a',
+              border: '1px solid #1e293b',
+              borderRadius: '16px',
+              padding: '22px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+              backdropFilter: 'blur(12px)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#f8fafc', letterSpacing: '0.3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>📋</span> Últimas Apuestas
+                </h4>
+                <span style={{ 
+                  fontSize: '11px', 
+                  fontWeight: '700', 
+                  backgroundColor: 'rgba(56, 189, 248, 0.12)', 
+                  color: '#38bdf8', 
+                  padding: '3px 9px', 
+                  borderRadius: '6px',
+                  border: '1px solid rgba(56, 189, 248, 0.25)'
+                }}>
+                  Histórico Reciente
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {recentBets.length > 0 ? (
+                  recentBets.map((bet) => {
+                    const isWon = bet.status === 'WON';
+                    const isLost = bet.status === 'LOST';
+                    const isCashout = bet.status === 'CASHOUT';
+
+                    const badgeBg = isWon ? 'rgba(34, 197, 94, 0.15)' : isLost ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)';
+                    const badgeBorder = isWon ? 'rgba(34, 197, 94, 0.3)' : isLost ? 'rgba(239, 68, 68, 0.3)' : 'rgba(168, 85, 247, 0.3)';
+                    const badgeColor = isWon ? '#4ade80' : isLost ? '#f87171' : '#a855f7';
+                    const statusText = isWon ? 'Ganada ✓' : isLost ? 'Perdida ✗' : 'Cashout ⚡';
+
+                    return (
+                      <div key={bet.id} className="recent-card-item" style={{ 
+                        backgroundColor: '#07090e', 
+                        padding: '12px 14px', 
+                        borderRadius: '10px', 
+                        border: '1px solid rgba(255, 255, 255, 0.05)', 
+                        fontSize: '12px' 
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', alignItems: 'center' }}>
+                          <span style={{ fontWeight: '700', color: '#e2e8f0' }}>
+                            Apuesta #{bet.id} <span style={{ color: '#64748b', fontWeight: '500' }}>({bet.bet_type || 'SIMPLE'})</span>
+                          </span>
+                          <span style={{ 
+                            color: badgeColor, 
+                            fontWeight: '700', 
+                            fontSize: '10.5px', 
+                            backgroundColor: badgeBg, 
+                            border: `1px solid ${badgeBorder}`,
+                            padding: '2px 7px', 
+                            borderRadius: '5px' 
+                          }}>
+                            {statusText}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '11.5px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '6px' }}>
+                          <span>Stake: <strong style={{ color: '#f8fafc' }}>S/ {Number(bet.stake).toFixed(2)}</strong></span>
+                          <span>P&L: <strong style={{ color: Number(bet.profit_loss) >= 0 ? '#4ade80' : '#f87171' }}>
+                            {Number(bet.profit_loss) >= 0 ? `+S/ ${Number(bet.profit_loss).toFixed(2)}` : `-S/ ${Math.abs(Number(bet.profit_loss)).toFixed(2)}`}
+                          </strong></span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: '#64748b', 
+                    textAlign: 'center', 
+                    padding: '20px 12px', 
+                    background: '#07090e', 
+                    borderRadius: '10px', 
+                    border: '1px dashed #1e293b',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span style={{ fontSize: '18px' }}>📂</span>
+                    <span>No hay historial de apuestas registradas</span>
                   </div>
                 )}
               </div>
