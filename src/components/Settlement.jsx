@@ -106,15 +106,10 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
     try {
       if (userId) {
         if (newStatus === 'PENDING') {
-          const { error } = await supabase
-            .from('bets')
-            .update({
-              status: 'PENDING',
-              profit_loss: 0,
-              cashout_amount: null
-            })
-            .eq('id', betId)
-            .eq('user_id', userId)
+          const { error } = await supabase.rpc('reopen_bet', {
+            p_user_id: userId,
+            p_bet_id: betId
+          })
 
           if (error) console.error('Error al reabrir apuesta:', error.message)
         } else {

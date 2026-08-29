@@ -32,9 +32,24 @@ export default function Dashboard({ user, onLogout }) {
     avgStake: '0.00'
   })
 
-  // Sincronización con Supabase
+  // Sincronización con Supabase y Tiempo Real
   useEffect(() => {
     fetchDashboardData();
+
+    // Suscripción en tiempo real para actualizar Bankroll y estadísticas (ej. al usar reopen_bet)
+    const realtimeSubscription = supabase
+      .channel('dashboard_updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bets' }, () => {
+        fetchDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookmakers' }, () => {
+        fetchDashboardData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(realtimeSubscription);
+    };
   }, [user]);
 
   const fetchDashboardData = async () => {
@@ -170,6 +185,20 @@ export default function Dashboard({ user, onLogout }) {
       console.error('Error general al cargar datos del Dashboard:', error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Función de Logout segura
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      if (typeof onLogout === 'function') {
+        onLogout();
+      } else {
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
     }
   };
 
@@ -310,7 +339,7 @@ export default function Dashboard({ user, onLogout }) {
           </div>
 
           <button
-            onClick={onLogout}
+            onClick={handleLogout}
             style={{
               backgroundColor: 'rgba(30, 41, 59, 0.4)',
               border: '1px solid #1e293b',
@@ -1043,7 +1072,7 @@ const kpiCardStyle = {
   transition: 'all 0.3s ease',
   cursor: 'pointer',
   boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-  boxSizing: 'border-box' // PREVIENE DESBORDES INTERNOS
+  boxSizing: 'border-box'
 }
 
 const kpiLabelStyle = {
