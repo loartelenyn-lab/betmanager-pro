@@ -122,30 +122,31 @@ export default function Dashboard({ user, onLogout }) {
         avgStake: avgStakeVal
       });
 
-      // 4. Procesar P&L Diario
+      // 4. Procesar P&L Diario (Agrupado y ordenado por fecha completa YYYY-MM-DD)
       const daysMap = {};
       settledBets.forEach(bet => {
         const rawDate = new Date(bet.created_at);
         const peruDate = new Date(rawDate.getTime() - (5 * 60 * 60 * 1000));
+        const dateKey = peruDate.toISOString().split('T')[0];
         const dayStr = String(peruDate.getDate()).padStart(2, '0');
         
-        if (!daysMap[dayStr]) {
-          daysMap[dayStr] = { day: dayStr, profit: 0, volume: 0, bets: 0 };
+        if (!daysMap[dateKey]) {
+          daysMap[dateKey] = { dateKey, day: dayStr, profit: 0, volume: 0, bets: 0 };
         }
-        daysMap[dayStr].profit += Number(bet.profit_loss || 0);
-        daysMap[dayStr].volume += Number(bet.stake || 0);
-        daysMap[dayStr].bets += 1;
+        daysMap[dateKey].profit += Number(bet.profit_loss || 0);
+        daysMap[dateKey].volume += Number(bet.stake || 0);
+        daysMap[dateKey].bets += 1;
       });
 
       const processedDays = Object.keys(daysMap).length > 0 
-        ? Object.values(daysMap).sort((a, b) => a.day.localeCompare(b.day))
+        ? Object.values(daysMap).sort((a, b) => a.dateKey.localeCompare(b.dateKey))
         : [
-            { day: '01', profit: 0, volume: 0, bets: 0 },
-            { day: '05', profit: 0, volume: 0, bets: 0 },
-            { day: '10', profit: 0, volume: 0, bets: 0 },
-            { day: '15', profit: 0, volume: 0, bets: 0 },
-            { day: '20', profit: 0, volume: 0, bets: 0 },
-            { day: '28', profit: 0.5, volume: 0.3, bets: 1 },
+            { dateKey: '2026-08-28', day: '28', profit: 0.5, volume: 0.3, bets: 1 },
+            { dateKey: '2026-09-01', day: '01', profit: 0, volume: 0, bets: 0 },
+            { dateKey: '2026-09-05', day: '05', profit: 0, volume: 0, bets: 0 },
+            { dateKey: '2026-09-10', day: '10', profit: 0, volume: 0, bets: 0 },
+            { dateKey: '2026-09-15', day: '15', profit: 0, volume: 0, bets: 0 },
+            { dateKey: '2026-09-20', day: '20', profit: 0, volume: 0, bets: 0 },
           ];
 
       setDailyData(processedDays);
@@ -595,12 +596,12 @@ export default function Dashboard({ user, onLogout }) {
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
                             <span style={{ color: '#94a3b8' }}>{isPositive ? 'Ganancia:' : 'Pérdida:'}</span>
                             <span style={{ fontWeight: '700', color: isPositive ? '#4ade80' : '#f87171' }}>
-                              {isPositive ? `+S/ ${item.profit}` : `-S/ ${Math.abs(item.profit)}`}
+                              {isPositive ? `+S/ ${Number(item.profit).toFixed(2)}` : `-S/ ${Math.abs(Number(item.profit)).toFixed(2)}`}
                             </span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '2px' }}>
                             <span style={{ color: '#94a3b8' }}>Volumen:</span>
-                            <span style={{ fontWeight: '600' }}>S/ {item.volume}</span>
+                            <span style={{ fontWeight: '600' }}>S/ {Number(item.volume).toFixed(2)}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
                             <span style={{ color: '#94a3b8' }}>Boletos:</span>
