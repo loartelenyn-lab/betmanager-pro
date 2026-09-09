@@ -138,7 +138,7 @@ export default function Dashboard({ user, onLogout }) {
         daysMap[dateKey].bets += 1;
       });
 
-      const processedDays = Object.keys(daysMap).length > 0 
+      const allProcessedDays = Object.keys(daysMap).length > 0 
         ? Object.values(daysMap).sort((a, b) => a.dateKey.localeCompare(b.dateKey))
         : [
             { dateKey: '2026-08-28', day: '28', profit: 0.5, volume: 0.3, bets: 1 },
@@ -149,11 +149,9 @@ export default function Dashboard({ user, onLogout }) {
             { dateKey: '2026-09-20', day: '20', profit: 0, volume: 0, bets: 0 },
           ];
 
-      setDailyData(processedDays);
-
-      // 5. Crecimiento Acumulado del Bankroll
+      // 5. Crecimiento Acumulado del Bankroll (Calculado sobre el histórico completo para mantener los valores reales)
       let runningBankroll = totalBankroll - totalProfit;
-      const bankrollTrend = processedDays.map(item => {
+      const fullBankrollTrend = allProcessedDays.map(item => {
         runningBankroll += item.profit;
         return {
           day: item.day,
@@ -161,7 +159,13 @@ export default function Dashboard({ user, onLogout }) {
           profit: item.profit
         };
       });
-      setCumulativeBankrollData(bankrollTrend);
+
+      // Lógica de restricción: limitamos la vista solo a los últimos 7 días
+      const last7Days = allProcessedDays.slice(-7);
+      const last7DaysBankroll = fullBankrollTrend.slice(-7);
+
+      setDailyData(last7Days);
+      setCumulativeBankrollData(last7DaysBankroll);
 
       // 6. Distribución por Tipo de Apuesta
       const typeMap = { SIMPLE: { total: 0, won: 0 }, PARLAY: { total: 0, won: 0 }, BETBUILDER: { total: 0, won: 0 } };

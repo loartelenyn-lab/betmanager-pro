@@ -34,15 +34,14 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
 
   const [bbSportId, setBbSportId] = useState('')
   const [bbLeagueId, setBbLeagueId] = useState('')
-  const [bbMatchName, setBbMatchName] = useState('Real Madrid vs. Barcelona')
+  const [bbMatchName, setBbMatchName] = useState('')
 
   const [legs, setLegs] = useState([
     { id: 1, sport_id: '', league_id: '', match_name: '', selection: '', odds: '' }
   ])
 
   const [bbMarkets, setBbMarkets] = useState([
-    { id: 1, selection: 'Más de 2.5 goles' },
-    { id: 2, selection: 'Ambos anotan (Sí)' }
+    { id: 1, selection: '' }
   ])
 
   const fetchInitialData = async () => {
@@ -169,7 +168,12 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
     effectiveOdds = parseFloat(globalOdds) || 1
   }
 
-  const potentialPayout = (numericStake * effectiveOdds).toFixed(2)
+  // MEJORA APLICADA: Deducción de stake para bonos o freebets
+  let calculatedPayout = numericStake * effectiveOdds
+  if (fundType === 'FREEBET' || fundType === 'BONUS') {
+    calculatedPayout = Math.max(0, calculatedPayout - numericStake)
+  }
+  const potentialPayout = calculatedPayout.toFixed(2)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
