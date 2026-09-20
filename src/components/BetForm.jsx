@@ -263,7 +263,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
   }
 
   return (
-    <div style={{
+    <div className="bet-form-wrapper" style={{
       maxWidth: '1100px',
       margin: '0 auto',
       padding: '30px',
@@ -312,11 +312,44 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
         .payout-value {
           animation: payoutPulse 2s infinite ease-in-out;
         }
+
+        /* --- REGLAS DE ADAPTABILIDAD RESPONSIVA (MÓVILES Y PANTALLAS PEQUEÑAS) --- */
+        @media (max-width: 768px) {
+          .bet-form-wrapper {
+            padding: 16px !important;
+          }
+          .form-header-title {
+            font-size: 20px !important;
+          }
+          .bet-type-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .bookmaker-fund-grid {
+            grid-template-columns: 1fr !important;
+            gap: 14px !important;
+          }
+          .bb-match-config-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .leg-row-grid {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+          .stake-odds-payout-grid {
+            grid-template-columns: 1fr !important;
+            gap: 14px !important;
+          }
+          .delete-leg-btn-container {
+            justify-content: flex-end !important;
+            width: 100% !important;
+          }
+        }
       `}</style>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px', letterSpacing: '-0.5px', textShadow: '0 2px 15px rgba(37,99,235,0.4)' }}>
+          <h2 className="form-header-title" style={{ fontSize: '24px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px', letterSpacing: '-0.5px', textShadow: '0 2px 15px rgba(37,99,235,0.4)' }}>
             Registro de Nueva Jugada 🎯
           </h2>
           <p style={{ fontSize: '13px', color: '#94a3b8' }}>Sincronizado de forma segura con Supabase bajo estricta disciplina financiera</p>
@@ -360,7 +393,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
           <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#94a3b8', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             1. Tipo de Apuesta
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+          <div className="bet-type-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
             {['Simple', 'Parlay', 'BetBuilder'].map((type) => (
               <button
                 type="button"
@@ -386,7 +419,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="bookmaker-fund-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <div className="interactive-card" style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '20px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#94a3b8', marginBottom: '8px' }}>
               Casa de Apuestas (Bookmaker)
@@ -434,7 +467,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
               <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#38bdf8', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Configuración del Partido Único (BetBuilder) 🛠️
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '12px' }}>
+              <div className="bb-match-config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '12px' }}>
                 <div>
                   <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: '600' }}>Deporte</span>
                   <select
@@ -480,7 +513,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
             <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#f8fafc' }}>
               {betType === 'BetBuilder' ? `Pronósticos del Mismo Partido (${bbMarkets.length})` : `Selecciones del Boleto (${legs.length})`}
             </h3>
@@ -515,7 +548,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
           {betType === 'BetBuilder' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', animation: 'fadeInPage 0.3s ease' }}>
               {bbMarkets.map((m, index) => (
-                <div key={m.id} style={{
+                <div key={m.id} className="leg-row-grid" style={{
                   backgroundColor: '#07090e',
                   border: '1px solid #1e293b',
                   borderRadius: '12px',
@@ -539,7 +572,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                       className="input-glow"
                     />
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', height: '100%' }}>
+                  <div className="delete-leg-btn-container" style={{ display: 'flex', alignItems: 'flex-end', height: '100%' }}>
                     {bbMarkets.length > 1 && (
                       <button
                         type="button"
@@ -564,7 +597,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', animation: 'fadeInPage 0.3s ease' }}>
               {legs.map((leg, index) => (
-                <div key={leg.id} style={{
+                <div key={leg.id} className="leg-row-grid" style={{
                   backgroundColor: '#07090e',
                   border: '1px solid #1e293b',
                   borderRadius: '12px',
@@ -641,7 +674,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', alignItems: 'flex-end', height: '100%' }}>
+                  <div className="delete-leg-btn-container" style={{ display: 'flex', alignItems: 'flex-end', height: '100%' }}>
                     {legs.length > 1 && (
                       <button
                         type="button"
@@ -666,7 +699,7 @@ export default function BetForm({ user, isCajaClosed = false, onSaveBet }) {
           )}
         </div>
 
-        <div className="interactive-card" style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '22px', display: 'grid', gridTemplateColumns: betType !== 'Simple' ? '1fr 1fr 1fr' : '1fr 1fr', gap: '20px', alignItems: 'center' }}>
+        <div className="interactive-card stake-odds-payout-grid" style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '22px', display: 'grid', gridTemplateColumns: betType !== 'Simple' ? '1fr 1fr 1fr' : '1fr 1fr', gap: '20px', alignItems: 'center' }}>
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#94a3b8', marginBottom: '8px' }}>
               Stake (Monto a Arriesgar S/)
