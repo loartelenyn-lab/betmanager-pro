@@ -198,18 +198,21 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
           border-color: #38bdf8 !important;
           box-shadow: 0 0 12px rgba(56, 189, 248, 0.3) !important;
         }
+        
+        /* DISEÑO ESCRITORIO (En 1 sola línea) */
         .card-grid-pending {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-          gap: 12px;
+          grid-template-columns: 0.6fr 1.2fr 1fr 0.8fr 1fr 1.2fr auto auto;
+          gap: 16px;
           align-items: center;
         }
         .card-grid-settled {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-          gap: 12px;
+          grid-template-columns: 0.6fr 1.2fr 1fr 1fr 1fr 1.2fr auto;
+          gap: 16px;
           align-items: center;
         }
+        
         .leg-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -228,12 +231,30 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
           width: 100%;
           max-width: fit-content;
         }
+
+        /* DISEÑO TABLET */
+        @media (max-width: 1024px) {
+          .card-grid-pending, .card-grid-settled {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+          }
+        }
+
+        /* DISEÑO MÓVIL */
         @media (max-width: 768px) {
           .card-grid-pending, .card-grid-settled {
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
           }
           .filter-container {
             max-width: 100%;
+          }
+        }
+
+        /* DISEÑO MÓVIL PEQUEÑO */
+        @media (max-width: 480px) {
+          .card-grid-pending, .card-grid-settled {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
@@ -368,7 +389,8 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
                           fontWeight: '700',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '6px'
+                          gap: '6px',
+                          width: 'fit-content'
                         }}
                       >
                         {isExpanded ? 'Ocultar 🔼' : `Ver Patas (${bet.legs.length}) 👁️`}
