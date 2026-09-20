@@ -444,7 +444,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {settledBets.map((bet) => {
+            {settledBets.slice(0, 20).map((bet) => {
               const isExpanded = expandedCardId === bet.id
               
               let statusColor = '#4ade80'
