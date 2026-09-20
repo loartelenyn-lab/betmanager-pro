@@ -159,8 +159,9 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
   return (
     <div style={{
       maxWidth: '1250px',
+      width: '100%',
       margin: '0 auto',
-      padding: '30px',
+      padding: '20px',
       backgroundColor: '#07090e',
       color: '#ffffff',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -197,9 +198,47 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
           border-color: #38bdf8 !important;
           box-shadow: 0 0 12px rgba(56, 189, 248, 0.3) !important;
         }
+        .card-grid-pending {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+          gap: 12px;
+          align-items: center;
+        }
+        .card-grid-settled {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+          gap: 12px;
+          align-items: center;
+        }
+        .leg-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 10px;
+          font-size: 12px;
+          background-color: #0f172a;
+          padding: 10px 14px;
+          border-radius: 8px;
+          border: 1px solid #1e293b;
+        }
+        .filter-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 16px;
+          align-items: center;
+          width: 100%;
+          max-width: fit-content;
+        }
+        @media (max-width: 768px) {
+          .card-grid-pending, .card-grid-settled {
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+          }
+          .filter-container {
+            max-width: 100%;
+          }
+        }
       `}</style>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#f8fafc', marginBottom: '4px', letterSpacing: '-0.5px' }}>
             Gestión y Liquidación de Apuestas 📋
@@ -208,12 +247,12 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
         </div>
       </div>
 
-      <div className="interactive-card" style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '16px 20px', marginBottom: '28px', display: 'grid', gridTemplateColumns: 'auto auto auto', gap: '24px', alignItems: 'center', width: 'fit-content' }}>
+      <div className="interactive-card filter-container" style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '16px 20px', marginBottom: '28px', boxSizing: 'border-box' }}>
         <div style={{ fontSize: '13px', fontWeight: '700', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
           🔍 Filtros:
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Casa:</span>
           <select
             value={filterBookmaker}
@@ -236,7 +275,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
           </select>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Tipo:</span>
           <select
             value={filterType}
@@ -258,7 +297,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
             ⏳ Apuestas Pendientes <span style={{ backgroundColor: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', padding: '2px 8px', borderRadius: '10px', fontSize: '12px' }}>{pendingBets.length}</span>
           </h3>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#0f172a', border: '1px solid #1e293b', padding: '6px 14px', borderRadius: '10px', fontSize: '11px', color: '#94a3b8' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#0f172a', border: '1px solid #1e293b', padding: '6px 14px', borderRadius: '10px', fontSize: '11px', color: '#94a3b8', flexWrap: 'wrap' }}>
             <span style={{ fontWeight: '700', color: '#cbd5e1' }}>Acción rápida:</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><strong style={{ color: '#4ade80' }}>[G]</strong> Ganada</span>
             <span>•</span>
@@ -281,7 +320,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
               return (
                 <div key={bet.id} className="interactive-card" style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '20px' }}>
                   
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr 1fr 1fr 1fr 1.2fr auto', gap: '12px', alignItems: 'center' }}>
+                  <div className="card-grid-pending">
                     <div>
                       <span style={{ fontSize: '10px', color: '#64748b', display: 'block', fontWeight: '700' }}>ID BOLETO</span>
                       <span style={{ fontSize: '13px', fontWeight: '800', color: '#38bdf8' }}>#{bet.id}</span>
@@ -336,7 +375,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
                       </button>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       <button title="G = Ganada" onClick={() => openActionModal(bet, 'WON')} className="btn-action" style={{ backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: '1px solid #22c55e', borderRadius: '8px', padding: '8px 10px', fontWeight: '800', fontSize: '11px' }}>✅ G</button>
                       <button title="P = Perdida" onClick={() => openActionModal(bet, 'LOST')} className="btn-action" style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: '1px solid #ef4444', borderRadius: '8px', padding: '8px 10px', fontWeight: '800', fontSize: '11px' }}>❌ P</button>
                       <button title="C = Cashout" onClick={() => openActionModal(bet, 'CASHOUT')} className="btn-action" style={{ backgroundColor: 'rgba(234, 179, 8, 0.2)', color: '#facc15', border: '1px solid #eab308', borderRadius: '8px', padding: '8px 10px', fontWeight: '800', fontSize: '11px' }}>💰 C</button>
@@ -352,7 +391,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
                       </span>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {bet.legs.map((leg, idx) => (
-                          <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 2fr 2fr', gap: '10px', fontSize: '12px', backgroundColor: '#0f172a', padding: '10px 14px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                          <div key={idx} className="leg-grid">
                             <div><span style={{ color: '#64748b' }}>Deporte:</span> <strong style={{ color: '#38bdf8' }}>{leg.sport}</strong></div>
                             <div><span style={{ color: '#64748b' }}>Liga:</span> {leg.league}</div>
                             <div><span style={{ color: '#64748b' }}>Partido:</span> <strong>{leg.match}</strong></div>
@@ -371,7 +410,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
       </div>
 
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
             📜 Historial de Apuestas Liquidadas <span style={{ backgroundColor: 'rgba(100, 116, 139, 0.2)', color: '#cbd5e1', padding: '2px 8px', borderRadius: '10px', fontSize: '12px' }}>{settledBets.length}</span>
           </h3>
@@ -383,7 +422,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {settledBets.slice(0, 30).map((bet) => {
+            {settledBets.map((bet) => {
               const isExpanded = expandedCardId === bet.id
               
               let statusColor = '#4ade80'
@@ -411,7 +450,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
               return (
                 <div key={bet.id} className="interactive-card" style={{ backgroundColor: '#0f172a', border: `1px solid ${statusBorder}`, borderRadius: '16px', padding: '18px', opacity: 0.95 }}>
                   
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr 1fr 1fr 1.3fr auto', gap: '12px', alignItems: 'center' }}>
+                  <div className="card-grid-settled">
                     <div>
                       <span style={{ fontSize: '10px', color: '#64748b', display: 'block', fontWeight: '700' }}>ID BOLETO</span>
                       <span style={{ fontSize: '13px', fontWeight: '800', color: '#38bdf8' }}>#{bet.id}</span>
@@ -448,7 +487,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                       <button
                         type="button"
                         onClick={() => handleProcessSettlement(bet.id, 'PENDING', 0, 0)}
@@ -485,7 +524,7 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
                       </span>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {bet.legs.map((leg, idx) => (
-                          <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 2fr 2fr', gap: '10px', fontSize: '12px', backgroundColor: '#0f172a', padding: '10px 14px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                          <div key={idx} className="leg-grid">
                             <div><span style={{ color: '#64748b' }}>Deporte:</span> <strong style={{ color: '#38bdf8' }}>{leg.sport}</strong></div>
                             <div><span style={{ color: '#64748b' }}>Liga:</span> {leg.league}</div>
                             <div><span style={{ color: '#64748b' }}>Partido:</span> <strong>{leg.match}</strong></div>
@@ -542,11 +581,11 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
           <div style={{
             position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
             backgroundColor: 'rgba(0, 0, 0, 0.75)', display: 'flex', justifyContent: 'center',
-            alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(5px)'
+            alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(5px)', padding: '16px', boxSizing: 'border-box'
           }}>
             <div style={{
               backgroundColor: '#0f172a', border: `1px solid ${borderCol}`, borderRadius: '20px',
-              padding: '30px', width: '420px', boxShadow: `0 0 40px ${borderCol}40`, animation: 'fadeInPage 0.3s ease'
+              padding: '30px', width: '420px', maxWidth: '90vw', boxShadow: `0 0 40px ${borderCol}40`, animation: 'fadeInPage 0.3s ease', boxSizing: 'border-box'
             }}>
               <h3 style={{ fontSize: '18px', fontWeight: '800', color: headerColor, marginBottom: '10px' }}>
                 {headerTitle}
@@ -571,12 +610,12 @@ export default function Settlement({ userId, bets = [], onSettleBet }) {
                 className="input-glow"
               />
 
-              <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => handleProcessSettlement(bet.id, type, null, parseFloat(modalInputVal) || 0)}
                   style={{
-                    flex: 1, backgroundColor: btnBg, color: type === 'CASHOUT' ? '#07090e' : '#ffffff',
+                    flex: 1, minWidth: '120px', backgroundColor: btnBg, color: type === 'CASHOUT' ? '#07090e' : '#ffffff',
                     border: 'none', borderRadius: '10px', padding: '12px', fontWeight: '800',
                     fontSize: '13px', cursor: 'pointer', boxShadow: `0 0 15px ${borderCol}60`
                   }}

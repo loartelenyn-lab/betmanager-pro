@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../supabase/client'
+import { supabase } from '../supabase/client' // 👈 Importación correcta del cliente de Supabase
 
 export default function Bankroll({ 
   userId,
@@ -29,12 +29,11 @@ export default function Bankroll({
 
   const fetchSupabaseData = async () => {
     try {
-      // 1. Obtener casas de apuestas activas del usuario
+      // 1. Obtener casas de apuestas del usuario
       const { data: bmData, error: bmError } = await supabase
         .from('bookmakers')
-        .select('id, name, current_balance')
+        .select('*')
         .eq('user_id', userId)
-        .order('id', { ascending: true })
 
       if (bmError) throw bmError
       
@@ -43,33 +42,30 @@ export default function Bankroll({
         mappedBooks = bmData.map(b => ({
           id: b.id,
           name: b.name,
-          balance: Number(b.current_balance) || 0
+          balance: Number(b.current_balance)
         }))
         setBooks(mappedBooks)
-        setForm(prev => ({ 
-          ...prev, 
-          bookmaker: prev.bookmaker || mappedBooks[0]?.name || '' 
-        }))
+        setForm(prev => ({ ...prev, bookmaker: mappedBooks[0]?.name || '' }))
       }
 
-      // 2. Obtener historial de transacciones ordenado por fecha descendente
+      // 2. Obtener transacciones evitando cruces complejos para prevenir errores 406
       const { data: txData, error: txError } = await supabase
         .from('transactions')
-        .select('id, type, amount, notes, created_at, bookmaker_id')
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
       if (txError) throw txError
 
       if (txData && txData.length > 0) {
+        // Mapeamos cruzando el nombre de la casa desde el estado local de bookmakers
         const mappedTx = txData.map(t => {
           const foundBook = mappedBooks.find(b => b.id === t.bookmaker_id)
           return {
             id: t.id,
-            bookmaker_id: t.bookmaker_id,
             type: t.type === 'DEPOSIT' ? 'DEPÓSITO' : 'RETIRO',
             bookmaker: foundBook?.name || 'Casa Externa',
-            amount: Number(t.amount) || 0,
+            amount: Number(t.amount),
             method: t.notes || 'Estándar',
             date: new Date(t.created_at).toLocaleString('es-PE', {
               day: '2-digit',
@@ -119,15 +115,11 @@ export default function Bankroll({
     }
 
     const targetBook = books.find(b => b.name === form.bookmaker)
-    if (!targetBook) {
-      setAlertMsg({ text: '⚠️ Selecciona una casa de apuestas válida.', type: 'error' })
-      return
-    }
 
     if (form.type === 'RETIRO') {
-      if (targetBook.balance < numericAmount) {
+      if (!targetBook || targetBook.balance < numericAmount) {
         setAlertMsg({ 
-          text: `❌ Saldo insuficiente en ${form.bookmaker}. Saldo actual disponible: S/ ${targetBook.balance.toFixed(2)}`, 
+          text: `❌ Saldo insuficiente en ${form.bookmaker}. Saldo actual disponible: S/ ${targetBook ? targetBook.balance.toFixed(2) : '0.00'}`, 
           type: 'error' 
         })
         return
@@ -135,13 +127,12 @@ export default function Bankroll({
     }
 
     const dbType = form.type === 'DEPÓSITO' ? 'DEPOSIT' : 'WITHDRAWAL'
-    const newBalance = form.type === 'DEPÓSITO' 
-      ? targetBook.balance + numericAmount 
-      : targetBook.balance - numericAmount
+    const newBalance = form.type === 'DEPÓSITO' ? targetBook.balance + numericAmount : targetBook.balance - numericAmount
 
-    if (userId) {
+    // PERSISTENCIA EN SUPABASE
+    if (userId && targetBook) {
       try {
-        // 1. Insertar transacción en Supabase (coincidiendo exactamente con el schema SQL)
+        // 1. Insertar transacción
         const { data: insertedTx, error: txError } = await supabase
           .from('transactions')
           .insert({
@@ -156,22 +147,20 @@ export default function Bankroll({
 
         if (txError) throw txError
 
-        // 2. Actualizar el saldo actual de la casa de apuestas (bookmaker)
+        // 2. Actualizar saldo del bookmaker en la base de datos
         const { error: bmError } = await supabase
           .from('bookmakers')
           .update({ current_balance: newBalance })
           .eq('id', targetBook.id)
-          .eq('user_id', userId)
 
         if (bmError) throw bmError
 
-        // Actualización local de estados tras confirmación de Supabase
+        // Actualizar estados locales tras éxito en BD
         const updatedBooks = books.map(b => b.id === targetBook.id ? { ...b, balance: newBalance } : b)
         setBooks(updatedBooks)
 
         const newTx = {
           id: insertedTx.id,
-          bookmaker_id: targetBook.id,
           type: form.type,
           bookmaker: targetBook.name,
           amount: numericAmount,
@@ -199,57 +188,27 @@ export default function Bankroll({
 
       } catch (error) {
         console.error('Error al guardar en la base de datos:', error.message)
-        setAlertMsg({ text: `❌ Error al procesar la transacción: ${error.message}`, type: 'error' })
+        setAlertMsg({ text: '❌ Error al procesar la transacción en la base de datos.', type: 'error' })
       }
     }
   }
 
   const handleDeleteTransaction = async (id) => {
-    if (window.confirm('¿Estás seguro de auditar y eliminar este registro financiero? Se reajustará el saldo de la casa.')) {
+    if (window.confirm('¿Estás seguro de auditar y eliminar este registro financiero?')) {
       try {
-        const txToDelete = transactions.find(t => t.id === id)
-        if (!txToDelete) return
-
-        // 1. Eliminar transacción en Supabase
-        const { error: deleteError } = await supabase
+        const { error } = await supabase
           .from('transactions')
           .delete()
           .eq('id', id)
-          .eq('user_id', userId)
 
-        if (deleteError) throw deleteError
-
-        // 2. Reconciliar saldo de la casa tras la eliminación
-        const targetBook = books.find(b => b.id === txToDelete.bookmaker_id || b.name === txToDelete.bookmaker)
-        let updatedBooks = books
-
-        if (targetBook) {
-          const adjustedBalance = txToDelete.type === 'DEPÓSITO'
-            ? targetBook.balance - txToDelete.amount
-            : targetBook.balance + txToDelete.amount
-
-          const { error: bmError } = await supabase
-            .from('bookmakers')
-            .update({ current_balance: adjustedBalance })
-            .eq('id', targetBook.id)
-
-          if (!bmError) {
-            updatedBooks = books.map(b => b.id === targetBook.id ? { ...b, balance: adjustedBalance } : b)
-            setBooks(updatedBooks)
-          }
-        }
+        if (error) throw error
 
         const filtered = transactions.filter(t => t.id !== id)
         setTransactions(filtered)
-
-        if (onTransactionComplete) {
-          onTransactionComplete({ transactions: filtered, bookmakers: updatedBooks })
-        }
-
-        setAlertMsg({ text: '🗑️ Transacción eliminada y saldo reconciliado correctamente.', type: 'success' })
+        setAlertMsg({ text: '🗑️ Transacción eliminada del registro.', type: 'success' })
       } catch (error) {
-        console.error('Error al eliminar transacción:', error.message)
-        setAlertMsg({ text: '❌ No se pudo eliminar la transacción de la base de datos.', type: 'error' })
+        console.error('Error al eliminar:', error.message)
+        setAlertMsg({ text: '❌ No se pudo eliminar la transacción.', type: 'error' })
       }
     }
   }
@@ -257,8 +216,9 @@ export default function Bankroll({
   return (
     <div style={{
       maxWidth: '1250px',
+      width: '100%',
       margin: '0 auto',
-      padding: '30px',
+      padding: '20px',
       backgroundColor: '#07090e',
       color: '#ffffff',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -270,6 +230,10 @@ export default function Bankroll({
         @keyframes fadeInPage {
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulseGlow {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 0.8; }
         }
         .pro-card {
           background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.6) 100%);
@@ -291,7 +255,7 @@ export default function Bankroll({
           filter: brightness(1.15);
           box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
         }
-        .input-pro:focus, select:focus {
+        .input-pro:focus {
           border-color: #38bdf8 !important;
           box-shadow: 0 0 16px rgba(56, 189, 248, 0.25) !important;
           background-color: rgba(15, 23, 42, 0.9) !important;
@@ -303,9 +267,20 @@ export default function Bankroll({
           background-color: rgba(30, 41, 59, 0.7) !important;
           border-color: rgba(56, 189, 248, 0.2) !important;
         }
+        .tx-row-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 15px;
+          align-items: center;
+        }
+        @media (max-width: 768px) {
+          .tx-row-grid {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+          }
+        }
       `}</style>
 
-      <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: '26px', fontWeight: '900', color: '#f8fafc', marginBottom: '6px', letterSpacing: '-0.5px' }}>
             Gestión de Bankroll: Depósitos y Retiros 💳
@@ -333,8 +308,7 @@ export default function Bankroll({
         </div>
       )}
 
-      {/* TARJETAS KPI */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px', marginBottom: '32px' }}>
         
         <div className="pro-card" style={{ borderRadius: '18px', padding: '22px', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: '#22c55e', boxShadow: '0 0 10px #22c55e' }}></div>
@@ -377,9 +351,9 @@ export default function Bankroll({
 
       </div>
 
-      {/* FORMULARIO DE REGISTRO DE TRANSACCIONES */}
-      <div className="pro-card" style={{ borderRadius: '22px', padding: '26px', marginBottom: '36px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="pro-card" style={{ borderRadius: '22px', padding: '26px', marginBottom: '36px', boxSizing: 'border-box' }}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
             ⚡ Registrar Nueva Transacción Financiera
           </h3>
@@ -390,7 +364,7 @@ export default function Bankroll({
           )}
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr)) 160px', gap: '16px', alignItems: 'end' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'end' }}>
           
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#94a3b8', marginBottom: '6px', letterSpacing: '0.5px' }}>
@@ -482,9 +456,8 @@ export default function Bankroll({
         </form>
       </div>
 
-      {/* AUDITORÍA Y HISTORIAL */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
             📜 Historial y Auditoría de Transacciones 
             <span style={{ backgroundColor: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', padding: '2px 10px', borderRadius: '10px', fontSize: '12px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
@@ -506,7 +479,7 @@ export default function Bankroll({
               const badgeBorder = isDeposit ? '#22c55e' : '#f97316'
 
               return (
-                <div key={tx.id} className="pro-card row-item" style={{ borderRadius: '16px', padding: '16px 20px', display: 'grid', gridTemplateColumns: '1.3fr 1.2fr 1.5fr 1.5fr 2fr auto', gap: '15px', alignItems: 'center' }}>
+                <div key={tx.id} className="pro-card row-item tx-row-grid" style={{ borderRadius: '16px', padding: '16px 20px' }}>
                   
                   <div>
                     <span style={{ fontSize: '10px', color: '#64748b', display: 'block', fontWeight: '800', letterSpacing: '0.5px' }}>FECHA Y HORA</span>
@@ -537,7 +510,7 @@ export default function Bankroll({
                     <span style={{ fontSize: '12px', color: '#94a3b8' }}>{tx.method}</span>
                   </div>
 
-                  <div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                     <button
                       type="button"
                       onClick={() => handleDeleteTransaction(tx.id)}
