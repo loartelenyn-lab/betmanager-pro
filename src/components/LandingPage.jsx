@@ -45,13 +45,57 @@ export default function LandingPage({ onGoToLogin }) {
           pointer-events: none;
           animation: pulseGlow 6s infinite ease-in-out;
         }
+
+        /* --- ADAPTACIÓN RESPONSIVE PARA DISPOSITIVOS MÓVILES (< 768px) --- */
+        @media (max-width: 767px) {
+          .landing-header {
+            padding: 16px 20px !important;
+          }
+          .landing-brand-title {
+            font-size: 17px !important;
+          }
+          .landing-brand-icon {
+            font-size: 24px !important;
+          }
+          .landing-login-btn {
+            padding: 8px 16px !important;
+            font-size: 13px !important;
+          }
+          .landing-main {
+            padding: 40px 16px 30px 16px !important;
+          }
+          .landing-badge {
+            font-size: 11px !important;
+            padding: 6px 14px !important;
+            margin-bottom: 18px !important;
+          }
+          .landing-cta-btn {
+            width: 100% !important;
+            justify-content: center !important;
+            padding: 14px 24px !important;
+            font-size: 16px !important;
+          }
+          .landing-cards-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+            margin-top: 48px !important;
+          }
+          .landing-footer {
+            padding: 20px 16px !important;
+            font-size: 12px !important;
+          }
+          .bg-glow-blob {
+            width: 300px !important;
+            height: 300px !important;
+          }
+        }
       `}</style>
 
       {/* Efecto de luz ambiental en el fondo */}
       <div className="bg-glow-blob" />
 
       {/* 1. NAVEGACIÓN SUPERIOR (HEADER) */}
-      <header style={{
+      <header className="landing-header" style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -64,14 +108,15 @@ export default function LandingPage({ onGoToLogin }) {
         backgroundColor: 'rgba(7, 9, 14, 0.85)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '28px', filter: 'drop-shadow(0 0 10px rgba(56, 189, 248, 0.5))' }}>🎯</span>
-          <span style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '0.5px', background: 'linear-gradient(135deg, #60a5fa 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <span className="landing-brand-icon" style={{ fontSize: '28px', filter: 'drop-shadow(0 0 10px rgba(56, 189, 248, 0.5))' }}>🎯</span>
+          <span className="landing-brand-title" style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '0.5px', background: 'linear-gradient(135deg, #60a5fa 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             BetManager Pro
           </span>
         </div>
 
         <button
           onClick={onGoToLogin}
+          className="landing-login-btn"
           style={{
             backgroundColor: '#2563eb',
             color: '#ffffff',
@@ -100,7 +145,7 @@ export default function LandingPage({ onGoToLogin }) {
       </header>
 
       {/* 2. SECCIÓN HERO (PRINCIPAL CON EFECTOS Y LLAMADO A LA ACCIÓN) */}
-      <main className="animate-fade-in" style={{
+      <main className="animate-fade-in landing-main" style={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
@@ -115,7 +160,7 @@ export default function LandingPage({ onGoToLogin }) {
       }}>
         
         {/* Badge superior llamativo con brillo */}
-        <div style={{
+        <div className="landing-badge" style={{
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
@@ -134,7 +179,7 @@ export default function LandingPage({ onGoToLogin }) {
 
         {/* Título Principal Impactante */}
         <h1 style={{
-          fontSize: 'clamp(36px, 5vw, 64px)',
+          fontSize: 'clamp(28px, 5vw, 64px)',
           fontWeight: '800',
           lineHeight: '1.15',
           marginBottom: '24px',
@@ -145,7 +190,7 @@ export default function LandingPage({ onGoToLogin }) {
 
         {/* Subtítulo descriptivo */}
         <p style={{
-          fontSize: 'clamp(16px, 2vw, 18px)',
+          fontSize: 'clamp(14px, 2vw, 18px)',
           color: '#94a3b8',
           lineHeight: '1.6',
           marginBottom: '40px',
@@ -159,6 +204,7 @@ export default function LandingPage({ onGoToLogin }) {
           onClick={onGoToLogin}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
+          className="landing-cta-btn"
           style={{
             backgroundColor: isHovered ? '#1d4ed8' : '#2563eb',
             color: '#ffffff',
@@ -181,7 +227,7 @@ export default function LandingPage({ onGoToLogin }) {
         </button>
 
         {/* 3. BLOQUE DE CARACTERÍSTICAS / CARDS FLOTANTES INTERACTIVAS */}
-        <div style={{
+        <div className="landing-cards-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
           gap: '20px',
@@ -252,7 +298,7 @@ export default function LandingPage({ onGoToLogin }) {
       </main>
 
       {/* 4. FOOTER INFERIOR */}
-      <footer style={{
+      <footer className="landing-footer" style={{
         padding: '24px 48px',
         borderTop: '1px solid rgba(255, 255, 255, 0.08)',
         textAlign: 'center',

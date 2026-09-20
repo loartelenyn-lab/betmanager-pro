@@ -67,7 +67,7 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
   return (
     <div style={{
       width: '100vw',
-      height: '100vh',
+      minHeight: '100vh',
       backgroundColor: '#07090e',
       color: '#ffffff',
       display: 'flex',
@@ -78,10 +78,11 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       boxSizing: 'border-box',
       position: 'relative',
-      overflow: 'hidden'
+      overflowX: 'hidden',
+      overflowY: 'auto'
     }}>
       
-      {/* ESTILOS DE ANIMACIÓN CSS */}
+      {/* ESTILOS DE ANIMACIÓN CSS Y MEDIA QUERIES RESPONSIVAS */}
       <style>{`
         @keyframes floatOrb1 {
           0% { transform: translate(0px, 0px) scale(1); }
@@ -107,10 +108,45 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
           box-shadow: 0 0 20px rgba(56, 189, 248, 0.35) !important;
           background-color: rgba(15, 23, 42, 0.9) !important;
         }
+
+        /* --- ADAPTACIÓN RESPONSIVE PARA DISPOSITIVOS MÓVILES (< 768px) --- */
+        @media (max-width: 767px) {
+          .login-back-btn {
+            position: relative !important;
+            top: 0 !important;
+            left: 0 !important;
+            align-self: flex-start !important;
+            margin-bottom: 20px !important;
+            padding: 9px 16px !important;
+            font-size: 12px !important;
+          }
+          .login-card {
+            padding: 28px 20px !important;
+            border-radius: 18px !important;
+          }
+          .login-icon {
+            font-size: 36px !important;
+            margin-bottom: 10px !important;
+          }
+          .login-title {
+            font-size: 22px !important;
+          }
+          .login-subtitle {
+            font-size: 12px !important;
+          }
+          .orb-1 {
+            width: 280px !important;
+            height: 280px !important;
+          }
+          .orb-2 {
+            width: 250px !important;
+            height: 250px !important;
+          }
+        }
       `}</style>
 
       {/* Orbes de luz ambiental animados en el fondo */}
-      <div style={{
+      <div className="orb-1" style={{
         position: 'absolute',
         width: '500px',
         height: '500px',
@@ -122,7 +158,7 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
         pointerEvents: 'none',
         animation: 'floatOrb1 8s ease-in-out infinite'
       }} />
-      <div style={{
+      <div className="orb-2" style={{
         position: 'absolute',
         width: '450px',
         height: '450px',
@@ -138,6 +174,7 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
       {/* Botón flotante para regresar */}
       <button
         onClick={onGoToLanding}
+        className="login-back-btn"
         style={{
           position: 'absolute',
           top: '30px',
@@ -176,7 +213,7 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
       </button>
 
       {/* TARJETA DE LOGIN CON EFECTO VIDRIO AVANZADO */}
-      <div style={{
+      <div className="login-card" style={{
         width: '100%',
         maxWidth: '440px',
         backgroundColor: 'rgba(15, 23, 42, 0.78)',
@@ -192,13 +229,13 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
         
         {/* Cabecera del Formulario */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ 
+          <div className="login-icon" style={{ 
             fontSize: '44px', 
             marginBottom: '14px',
             filter: 'drop-shadow(0 0 20px rgba(56, 189, 248, 0.5))',
             animation: 'floatOrb1 4s ease-in-out infinite'
           }}>🎯</div>
-          <h2 style={{
+          <h2 className="login-title" style={{
             fontSize: '26px',
             fontWeight: '800',
             marginBottom: '8px',
@@ -207,7 +244,7 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
           }}>
             Acceso a <span style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #2563eb 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>BetManager</span>
           </h2>
-          <p style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '500' }}>
+          <p className="login-subtitle" style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '500' }}>
             Autenticación segura para gestión de bankroll
           </p>
         </div>
@@ -347,7 +384,7 @@ export default function Login({ onLoginSuccess, onGoToLanding }) {
       </div>
 
       {/* Pie de página sutil */}
-      <div style={{ marginTop: '24px', fontSize: '12px', color: '#64748b', zIndex: 2, fontWeight: '500', letterSpacing: '0.3px' }}>
+      <div style={{ marginTop: '24px', fontSize: '12px', color: '#64748b', zIndex: 2, fontWeight: '500', letterSpacing: '0.3px', textAlign: 'center' }}>
         Plataforma cifrada de alto rendimiento.
       </div>
 
