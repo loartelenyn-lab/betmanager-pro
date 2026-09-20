@@ -1,3 +1,5 @@
+import React from 'react'
+
 export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -21,19 +23,22 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
   return (
     <aside style={{
       width: '100%',
-      height: '100%',
+      minHeight: '100%',
+      maxHeight: '100dvh', // Soporte para navegadores móviles
       backgroundColor: sidebarBg,
       color: textColor,
       display: 'flex',
       flexDirection: 'column',
-      padding: '24px 14px',
+      padding: '20px 14px 32px 14px', // Extra padding inferior para evitar choque con gestos del móvil
       borderRight: `1px solid ${borderColor}`,
       boxSizing: 'border-box',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-      userSelect: 'none'
+      userSelect: 'none',
+      overflowY: 'auto', // Permite scroll general en caso de pantallas pequeñas
+      WebkitOverflowScrolling: 'touch' // Scroll fluido en iOS
     }}>
       
-      {/* ESTILOS CSS ANIMADOS Y SCROLLBAR PREMIUM */}
+      {/* ESTILOS CSS SCROLLBAR */}
       <style>{`
         .sidebar-scroll::-webkit-scrollbar {
           width: 4px;
@@ -45,17 +50,11 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
           background: #1e293b;
           border-radius: 4px;
         }
-        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-          background: #334155;
-        }
         .menu-btn {
           transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .menu-btn:hover {
           transform: translateX(4px);
-        }
-        .menu-btn:active {
-          transform: translateX(2px) scale(0.98);
         }
         .logout-card {
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -63,29 +62,22 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
         .logout-card:hover {
           border-color: rgba(239, 68, 68, 0.6) !important;
           background-color: rgba(239, 68, 68, 0.16) !important;
-          box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
-          transform: translateY(-2px);
-        }
-        .logout-card:active {
-          transform: translateY(0);
         }
       `}</style>
 
-      {/* CONTENEDOR PRINCIPAL CON SCROLL FLUIDO */}
+      {/* CONTENEDOR FLEX PRINCIPAL */}
       <div className="sidebar-scroll" style={{
-        flex: 1,
-        overflowY: 'auto',
-        overflowX: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        paddingRight: '4px'
+        minHeight: '100%',
+        flex: 1
       }}>
         
         {/* PARTE SUPERIOR: LOGO Y NAVEGACIÓN */}
         <div>
           {/* LOGO DE LA PLATAFORMA */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px', paddingLeft: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', paddingLeft: '6px' }}>
             <div style={{
               width: '40px',
               height: '40px',
@@ -137,12 +129,6 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
                     boxShadow: isActive ? '0 8px 25px rgba(37, 99, 235, 0.4)' : 'none',
                     outline: 'none'
                   }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) e.currentTarget.style.backgroundColor = hoverBg
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'
-                  }}
                 >
                   <span style={{ 
                     fontSize: '17px', 
@@ -161,7 +147,7 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
         </div>
 
         {/* PARTE INFERIOR: TARJETA DE USUARIO Y CERRAR SESIÓN */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: `1px solid ${borderColor}`, paddingTop: '20px', marginTop: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: `1px solid ${borderColor}`, paddingTop: '16px', marginTop: '16px' }}>
           
           {/* INFORMACIÓN DEL USUARIO */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', backgroundColor: hoverBg, borderRadius: '12px', border: `1px solid ${borderColor}` }}>
@@ -203,14 +189,13 @@ export default function Sidebar({ currentScreen, onNavigate, onLogout, user }) {
               justifyContent: 'center',
               gap: '10px',
               padding: '12px',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
+              backgroundColor: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
               borderRadius: '12px',
               color: '#f87171',
               fontSize: '13px',
               fontWeight: '700',
               cursor: 'pointer',
-              marginBottom: '4px',
               outline: 'none'
             }}
           >
