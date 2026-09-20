@@ -128,7 +128,7 @@ export default function Admin() {
         setClosureHistory(closures.map(c => ({
           date: c.closure_date,
           status: 'Cerrado Correctamente (Bloqueado)',
-          time: new Date(c.closed_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          time: new Date(c.closed_at || c.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         })))
 
         const todayClosed = closures.some(c => c.closure_date === todayStr)
@@ -140,28 +140,43 @@ export default function Admin() {
     }
   }
 
-  // --- LÓGICA DE LIQUIDACIÓN REFACTORIZADA VÍA RPC `settle_bet` ---
-  const handleLiquidateBet = async (betId, newStatus, bookmakerId, stake, profit, cashoutAmount = null) => {
+  // --- LÓGICA CLAVE DE LIQUIDACIÓN DE APUESTAS Y ACTUALIZACIÓN DE SALDO ---
+  const handleLiquidateBet = async (betId, newStatus, bookmakerId, stake, profit) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      let balanceChange = 0;
+      
+      if (newStatus === 'WON' || newStatus === 'Ganada') {
+        balanceChange = Number(stake) + Number(profit);
+      } else if (newStatus === 'LOST' || newStatus === 'Perdida') {
+        balanceChange = 0;
+      } else if (newStatus === 'CASHOUT') {
+        balanceChange = Number(profit);
+      }
 
-      // Llamada directa a la función almacenada atómica en la base de datos
-      const { error } = await supabase.rpc('settle_bet', {
-        p_user_id: user.id,
-        p_bet_id: betId,
-        p_new_status: newStatus,
-        p_cashout_amount: cashoutAmount
-      })
+      const { data: bookData, error: bookError } = await supabase
+        .from('bookmakers')
+        .select('current_balance')
+        .eq('id', bookmakerId)
+        .single();
 
-      if (error) throw error
+      if (bookError) throw bookError;
 
-      loadSupabaseData()
+      const currentBookBalance = Number(bookData.current_balance || 0);
+      const updatedBalance = currentBookBalance + balanceChange;
+
+      const { error: updateBookError } = await supabase
+        .from('bookmakers')
+        .update({ current_balance: updatedBalance })
+        .eq('id', bookmakerId);
+
+      if (updateBookError) throw updateBookError;
+
+      loadSupabaseData();
+      
     } catch (error) {
-      console.error('Error al liquidar apuesta:', error.message)
-      alert('Error al procesar la liquidación: ' + error.message)
+      console.error('Error al actualizar el saldo de la casa:', error.message);
     }
-  }
+  };
 
   const handleAddBookmaker = async (e) => {
     e.preventDefault()
@@ -342,7 +357,8 @@ export default function Admin() {
           full_name: userName,
           currency: currency,
           initial_bankroll: initialBankroll,
-          theme_preference: currentTheme
+          theme_preference: currentTheme,
+          updated_at: new Date()
         })
 
       if (error) throw error
@@ -375,6 +391,7 @@ export default function Admin() {
   return (
     <div style={{
       maxWidth: '1300px',
+      width: '100%',
       margin: '0 auto',
       padding: '30px',
       backgroundColor: currentTheme === 'light' ? '#f8fafc' : '#07090e',

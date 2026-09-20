@@ -52,8 +52,9 @@ export default function Calculators() {
   return (
     <div style={{
       maxWidth: '1250px',
+      width: '100%',
       margin: '0 auto',
-      padding: '30px',
+      padding: '20px',
       backgroundColor: '#07090e',
       color: '#ffffff',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -95,6 +96,24 @@ export default function Calculators() {
         .tab-btn:hover {
           color: #38bdf8;
         }
+        .tab-nav-container {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 28px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          padding-bottom: 12px;
+          flex-wrap: wrap;
+        }
+        @media (max-width: 640px) {
+          .tab-nav-container {
+            display: grid;
+            grid-template-columns: 1fr;
+          }
+          .tab-btn {
+            width: 100%;
+            text-align: center;
+          }
+        }
       `}</style>
 
       <div style={{ marginBottom: '24px' }}>
@@ -106,14 +125,7 @@ export default function Calculators() {
         </p>
       </div>
 
-      <div style={{ 
-        display: 'flex', 
-        gap: '10px', 
-        marginBottom: '28px', 
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)', 
-        paddingBottom: '12px',
-        flexWrap: 'wrap'
-      }}>
+      <div className="tab-nav-container">
         <button
           type="button"
           onClick={() => setActiveTab('implied')}
@@ -170,9 +182,9 @@ export default function Calculators() {
       </div>
 
       {activeTab === 'implied' && (
-        <div className="tab-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+        <div className="tab-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
           
-          <div className="pro-card" style={{ borderRadius: '20px', padding: '24px' }}>
+          <div className="pro-card" style={{ borderRadius: '20px', padding: '24px', boxSizing: 'border-box' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '8px' }}>
               Parámetros de Cuota
             </h3>
@@ -214,7 +226,7 @@ export default function Calculators() {
             </div>
           </div>
 
-          <div className="pro-card" style={{ borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="pro-card" style={{ borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '20px' }}>
                 Resultados del Análisis
@@ -229,7 +241,7 @@ export default function Calculators() {
                 </div>
               </div>
 
-              <div style={{ backgroundColor: 'rgba(7, 9, 14, 0.6)', border: `1px solid ${expectedValueEV >= 0 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`, borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ backgroundColor: 'rgba(7, 9, 14, 0.6)', border: `1px solid ${expectedValueEV >= 0 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`, borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', display: 'block' }}>VALOR ESPERADO (EV)</span>
                   <span style={{ fontSize: '12px', color: '#cbd5e1' }}>Rentabilidad a largo plazo</span>
@@ -241,7 +253,7 @@ export default function Calculators() {
             </div>
 
             <div style={{ marginTop: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '800', color: '#94a3b8', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '800', color: '#94a3b8', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
                 <span>SEMÁFORO DE VALOR</span>
                 <span style={{ color: impliedProbability > 60 ? '#f87171' : '#4ade80' }}>
                   {impliedProbability > 60 ? 'Cuota Baja / Alta Probabilidad' : 'Cuota Alta / Oportunidad'}
@@ -258,9 +270,9 @@ export default function Calculators() {
       )}
 
       {activeTab === 'value' && (
-        <div className="tab-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+        <div className="tab-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
           
-          <div className="pro-card" style={{ borderRadius: '20px', padding: '24px' }}>
+          <div className="pro-card" style={{ borderRadius: '20px', padding: '24px', boxSizing: 'border-box' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '8px' }}>
               Parámetros de Value Bet
             </h3>
@@ -314,7 +326,7 @@ export default function Calculators() {
             </div>
           </div>
 
-          <div className="pro-card" style={{ borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="pro-card" style={{ borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '20px' }}>
                 Diagnóstico de Rentabilidad
@@ -332,7 +344,7 @@ export default function Calculators() {
                 </span>
               </div>
 
-              <div style={{ backgroundColor: 'rgba(7, 9, 14, 0.6)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ backgroundColor: 'rgba(7, 9, 14, 0.6)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', display: 'block' }}>BENEFICIO ESPERADO TEÓRICO</span>
                   <span style={{ fontSize: '12px', color: '#cbd5e1' }}>Ganancia estadística a largo plazo</span>
@@ -358,9 +370,9 @@ export default function Calculators() {
       )}
 
       {activeTab === 'arbitrage' && (
-        <div className="tab-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+        <div className="tab-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
           
-          <div className="pro-card" style={{ borderRadius: '20px', padding: '24px' }}>
+          <div className="pro-card" style={{ borderRadius: '20px', padding: '24px', boxSizing: 'border-box' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginBottom: '8px' }}>
               Parámetros de Surebet
             </h3>
@@ -383,7 +395,7 @@ export default function Calculators() {
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#94a3b8', marginBottom: '6px' }}>
                   CUOTA RESULTADO 1
@@ -415,9 +427,9 @@ export default function Calculators() {
             </div>
           </div>
 
-          <div className="pro-card" style={{ borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="pro-card" style={{ borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '8px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', margin: 0 }}>
                   Desglose de Arbitraje
                 </h3>
@@ -434,7 +446,7 @@ export default function Calculators() {
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                 <div style={{ backgroundColor: 'rgba(7, 9, 14, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '14px', padding: '16px' }}>
                   <span style={{ fontSize: '10px', fontWeight: '800', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>APOSTAR EN CASA A</span>
                   <div style={{ fontSize: '20px', fontWeight: '900', color: '#38bdf8' }}>
@@ -452,7 +464,7 @@ export default function Calculators() {
                 </div>
               </div>
 
-              <div style={{ backgroundColor: 'rgba(7, 9, 14, 0.6)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ backgroundColor: 'rgba(7, 9, 14, 0.6)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', display: 'block' }}>GANANCIA NETA GARANTIZADA</span>
                   <span style={{ fontSize: '12px', color: '#cbd5e1' }}>Libre de riesgo (Sin importar el resultado)</span>

@@ -72,14 +72,13 @@ export default function Reports() {
           id,
           created_at,
           bookmaker_id,
+          bookmakers ( name ),
           bet_type,
           fund_type,
           stake,
           total_odds,
           profit_loss,
           status,
-          notes,
-          bookmakers!inner ( name ),
           bet_legs ( match_name, selection )
         `)
         .eq('user_id', user.id)
@@ -392,6 +391,7 @@ export default function Reports() {
   return (
     <div style={{
       maxWidth: '1300px',
+      width: '100%',
       margin: '0 auto',
       padding: '30px',
       backgroundColor: '#07090e',
