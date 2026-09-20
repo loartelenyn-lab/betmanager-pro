@@ -281,10 +281,44 @@ export default function Dashboard({ user, onLogout }) {
         .progress-bar-fill {
           transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        /* --- REGLAS RESPONSIVAS PARA PANTALLAS MÓVILES (< 768px) --- */
+        @media (max-width: 767px) {
+          header.db-header {
+            padding: 14px 18px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .header-user-actions {
+            justify-content: space-between !important;
+            width: 100% !important;
+          }
+          main.db-main {
+            padding: 16px !important;
+            gap: 18px !important;
+          }
+          .kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+          }
+          .chart-card-padding {
+            padding: 18px 14px !important;
+          }
+          .chart-bars-container {
+            overflow-x: auto !important;
+            padding-bottom: 12px !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .kpi-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
       `}</style>
 
       {/* 1. BARRA SUPERIOR DE NAVEGACIÓN */}
-      <header style={{
+      <header className="db-header" style={{
         width: '100%',
         boxSizing: 'border-box',
         display: 'flex',
@@ -321,7 +355,7 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+        <div className="header-user-actions" style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '36px',
@@ -373,7 +407,7 @@ export default function Dashboard({ user, onLogout }) {
       </header>
 
       {/* CONTENEDOR PRINCIPAL */}
-      <main style={{ 
+      <main className="db-main" style={{ 
         padding: '32px 40px', 
         display: 'flex', 
         flexDirection: 'column', 
@@ -432,7 +466,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
 
         {/* 3. KPIS FINANCIEROS */}
-        <div style={{ 
+        <div className="kpi-grid" style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
           gap: '16px',
@@ -495,7 +529,7 @@ export default function Dashboard({ user, onLogout }) {
           }}>
 
             {/* GRÁFICO 1: EVOLUCIÓN DE P&L DIARIO */}
-            <div style={{
+            <div className="chart-card-padding" style={{
               backgroundColor: '#0f172a',
               border: '1px solid #1e293b',
               borderRadius: '16px',
@@ -531,7 +565,7 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              <div style={{ 
+              <div className="chart-bars-container" style={{ 
                 height: '220px', 
                 display: 'flex', 
                 alignItems: 'flex-end', 
@@ -576,7 +610,8 @@ export default function Dashboard({ user, onLogout }) {
                         position: 'relative',
                         height: '100%',
                         justifyContent: 'flex-end',
-                        flex: 1
+                        flex: 1,
+                        minWidth: '28px'
                       }}
                     >
                       {activeTooltip === item && (
@@ -615,7 +650,7 @@ export default function Dashboard({ user, onLogout }) {
                       )}
 
                       <div style={{
-                        width: '32px',
+                        width: '28px',
                         height: `${barHeight}px`,
                         background: isPositive 
                           ? 'linear-gradient(180deg, #38bdf8 0%, #2563eb 100%)' 
@@ -626,7 +661,7 @@ export default function Dashboard({ user, onLogout }) {
                         transform: activeTooltip === item ? 'scaleY(1.08) scaleX(1.05)' : 'scaleY(1) scaleX(1)'
                       }} />
 
-                      <span style={{ fontSize: '12px', color: activeTooltip === item ? '#ffffff' : '#94a3b8' }}>
+                      <span style={{ fontSize: '11px', color: activeTooltip === item ? '#ffffff' : '#94a3b8' }}>
                         Día {item.day}
                       </span>
                     </div>
@@ -677,7 +712,7 @@ export default function Dashboard({ user, onLogout }) {
             </div>
 
             {/* GRÁFICO 2: CRECIMIENTO Y CURVA DE BANKROLL ACUMULADO */}
-            <div className="animated-panel chart-card-animated" style={{
+            <div className="animated-panel chart-card-animated chart-card-padding" style={{
               backgroundColor: '#0f172a',
               border: '1px solid rgba(56, 189, 248, 0.2)',
               borderRadius: '16px',
@@ -700,12 +735,12 @@ export default function Dashboard({ user, onLogout }) {
                 </span>
               </div>
 
-              <div style={{
+              <div className="chart-bars-container" style={{
                 height: '180px',
                 display: 'flex',
                 alignItems: 'flex-end',
                 justifyContent: 'space-between',
-                padding: '0 20px 20px 20px',
+                padding: '0 16px 16px 16px',
                 backgroundColor: 'rgba(7, 9, 14, 0.6)',
                 borderRadius: '12px',
                 border: '1px solid rgba(255,255,255,0.05)',
@@ -729,7 +764,8 @@ export default function Dashboard({ user, onLogout }) {
                         height: '100%',
                         flex: 1,
                         position: 'relative',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        minWidth: '24px'
                       }}
                     >
                       {activeTooltipChart2 === item && (
@@ -767,7 +803,7 @@ export default function Dashboard({ user, onLogout }) {
             </div>
 
             {/* GRÁFICO 3: DISTRIBUCIÓN Y RENDIMIENTO POR TIPO DE APUESTA */}
-            <div className="animated-panel chart-card-animated" style={{
+            <div className="animated-panel chart-card-animated chart-card-padding" style={{
               backgroundColor: '#0f172a',
               border: '1px solid rgba(168, 85, 247, 0.2)',
               borderRadius: '16px',
@@ -801,7 +837,7 @@ export default function Dashboard({ user, onLogout }) {
 
                   return (
                     <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', fontSize: '12.5px', fontWeight: '700' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', fontSize: '12.5px', fontWeight: '700', gap: '4px' }}>
                         <span style={{ color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: styleColor.gradient }}></span>
                           {item.type} ({item.count} jugadas)
