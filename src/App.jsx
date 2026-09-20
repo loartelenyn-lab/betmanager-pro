@@ -26,11 +26,11 @@ export default function App() {
     return localStorage.getItem('betManager_theme') || 'dark'
   })
 
-  // NUEVO: Estados para manejar la adaptabilidad móvil
+  // Estados para manejar la adaptabilidad móvil
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // NUEVO: Detectar cambios de tamaño de pantalla en tiempo real
+  // Detectar cambios de tamaño de pantalla en tiempo real
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768)
     window.addEventListener('resize', handleResize)
@@ -40,9 +40,15 @@ export default function App() {
   const handleLogout = () => {
     setUser(null)
     setCurrentScreen('landing')
+    setMobileMenuOpen(false)
     localStorage.removeItem('betManager_user')
     localStorage.removeItem('betManager_screen')
     localStorage.removeItem('betManager_lastActivity')
+  }
+
+  const handleNavigate = (screen) => {
+    setCurrentScreen(screen)
+    setMobileMenuOpen(false) // Cierra el menú móvil al cambiar de pantalla
   }
 
   // 1. CONTROL DE INACTIVIDAD Y RECARGA
@@ -141,14 +147,14 @@ export default function App() {
     <div style={{ 
       display: 'flex', 
       width: '100vw', 
-      height: '100vh', 
+      height: '100dvh', 
       backgroundColor: currentTheme.bgMain, 
       color: currentTheme.textMain, 
       overflow: 'hidden', 
       boxSizing: 'border-box' 
     }}>
       
-      {/* ESTILOS DE SCROLLBAR GLOBAL Y COMPONENTES MÓVILES */}
+      {/* ESTILOS DE SCROLLBAR GLOBAL */}
       <style>{`
         .main-content-scroll::-webkit-scrollbar {
           width: 6px;
@@ -165,12 +171,12 @@ export default function App() {
         }
       `}</style>
 
-      {/* CONTENEDOR LATERAL DEL SIDEBAR (Solo se muestra en PC / pantallas grandes) */}
+      {/* SIDEBAR ESCRITORIO (Solo en PC / Pantallas grandes) */}
       {!isMobile && (
-        <div style={{ width: '260px', flexShrink: 0, height: '100vh', borderRight: `1px solid ${currentTheme.border}` }}>
+        <div style={{ width: '260px', flexShrink: 0, height: '100dvh', borderRight: `1px solid ${currentTheme.border}` }}>
           <Sidebar 
             currentScreen={currentScreen} 
-            onNavigate={setCurrentScreen} 
+            onNavigate={handleNavigate} 
             onLogout={handleLogout} 
             user={user}
             theme={theme}
@@ -179,33 +185,33 @@ export default function App() {
         </div>
       )}
 
-      {/* ÁREA DE CONTENIDO PRINCIPAL CON SCROLL INDEPENDIENTE */}
+      {/* ÁREA DE CONTENIDO PRINCIPAL */}
       <main className="main-content-scroll" style={{ 
         flex: 1, 
-        height: '100vh', 
+        height: '100dvh', 
         overflowY: 'auto', 
         backgroundColor: currentTheme.bgMain, 
         color: currentTheme.textMain,
-        paddingBottom: isMobile ? '80px' : '0', // Espacio reservado para que la barra inferior no tape contenido en móvil
+        paddingBottom: isMobile ? '75px' : '0', // Espacio para la barra inferior en móviles
         boxSizing: 'border-box'
       }}>
-        {currentScreen === 'dashboard' && <Dashboard userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={currentTheme} />}
-        {currentScreen === 'betform' && <BetForm userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={currentTheme} />}
-        {currentScreen === 'settlement' && <Settlement userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={currentTheme} />}
-        {currentScreen === 'bankroll' && <Bankroll userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={currentTheme} />}
-        {currentScreen === 'calculators' && <Calculators userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={currentTheme} />}
-        {currentScreen === 'reports' && <Reports userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={currentTheme} />}
-        {currentScreen === 'admin' && <Admin userId={user?.id} user={user} onNavigate={setCurrentScreen} theme={theme} setTheme={setTheme} />}
+        {currentScreen === 'dashboard' && <Dashboard userId={user?.id} user={user} onNavigate={handleNavigate} theme={currentTheme} />}
+        {currentScreen === 'betform' && <BetForm userId={user?.id} user={user} onNavigate={handleNavigate} theme={currentTheme} />}
+        {currentScreen === 'settlement' && <Settlement userId={user?.id} user={user} onNavigate={handleNavigate} theme={currentTheme} />}
+        {currentScreen === 'bankroll' && <Bankroll userId={user?.id} user={user} onNavigate={handleNavigate} theme={currentTheme} />}
+        {currentScreen === 'calculators' && <Calculators userId={user?.id} user={user} onNavigate={handleNavigate} theme={currentTheme} />}
+        {currentScreen === 'reports' && <Reports userId={user?.id} user={user} onNavigate={handleNavigate} theme={currentTheme} />}
+        {currentScreen === 'admin' && <Admin userId={user?.id} user={user} onNavigate={handleNavigate} theme={theme} setTheme={setTheme} />}
       </main>
 
-      {/* NUEVO: BARRA INFERIOR MÓVIL (Solo se muestra en pantallas pequeñas / celulares) */}
+      {/* BARRA INFERIOR MÓVIL */}
       {isMobile && (
         <nav style={{
           position: 'fixed',
           bottom: 0,
           left: 0,
           width: '100%',
-          height: '65px',
+          height: '60px',
           backgroundColor: currentTheme.bgContainer,
           borderTop: `1px solid ${currentTheme.border}`,
           display: 'flex',
@@ -214,99 +220,153 @@ export default function App() {
           zIndex: 999,
           boxShadow: '0 -4px 20px rgba(0,0,0,0.4)'
         }}>
-          <button onClick={() => setCurrentScreen('dashboard')} style={navBtnStyle(currentScreen === 'dashboard', currentTheme)}>
+          <button onClick={() => handleNavigate('dashboard')} style={navBtnStyle(currentScreen === 'dashboard', currentTheme)}>
             <span style={{ fontSize: '18px' }}>📊</span>
             <span style={{ fontSize: '10px' }}>Dashboard</span>
           </button>
           
-          <button onClick={() => setCurrentScreen('betform')} style={navBtnStyle(currentScreen === 'betform', currentTheme)}>
+          <button onClick={() => handleNavigate('betform')} style={navBtnStyle(currentScreen === 'betform', currentTheme)}>
             <span style={{ fontSize: '18px' }}>➕</span>
             <span style={{ fontSize: '10px' }}>Nueva</span>
           </button>
           
-          <button onClick={() => setCurrentScreen('settlement')} style={navBtnStyle(currentScreen === 'settlement', currentTheme)}>
+          <button onClick={() => handleNavigate('settlement')} style={navBtnStyle(currentScreen === 'settlement', currentTheme)}>
             <span style={{ fontSize: '18px' }}>✅</span>
             <span style={{ fontSize: '10px' }}>Liquidar</span>
           </button>
           
-          <button onClick={() => setMobileMenuOpen(true)} style={navBtnStyle(false, currentTheme)}>
+          <button onClick={() => setMobileMenuOpen(true)} style={navBtnStyle(mobileMenuOpen, currentTheme)}>
             <span style={{ fontSize: '18px' }}>☰</span>
             <span style={{ fontSize: '10px' }}>Más</span>
           </button>
         </nav>
       )}
 
-      {/* NUEVO: MENÚ DESPLEGABLE LATERAL "MÁS" (Drawer móvil) */}
+      {/* MODAL MÓVIL (DRAWER): RENDERIZA EL SIDEBAR O UN CONTENEDOR CON SCROLL GARANTIZADO */}
       {isMobile && mobileMenuOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(0, 0, 0, 0.75)',
-          zIndex: 1000,
-          display: 'flex',
-          justifyContent: 'flex-end',
-          backdropFilter: 'blur(3px)'
-        }}>
-          <div style={{
-            width: '280px',
-            height: '100%',
-            backgroundColor: currentTheme.bgContainer,
-            padding: '24px 16px',
+        <div 
+          onClick={() => setMobileMenuOpen(false)} // Cierra el menú si presiona el fondo oscuro
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100dvh',
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            zIndex: 1000,
             display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            borderLeft: `1px solid ${currentTheme.border}`,
-            boxSizing: 'border-box'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: '800', fontSize: '16px', color: currentTheme.textMain }}>Menú de Opciones</span>
+            justifyContent: 'flex-end',
+            backdropFilter: 'blur(4px)'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()} // Evita que se cierre al hacer clic dentro del menú
+            style={{
+              width: '280px',
+              height: '100dvh',
+              maxHeight: '100dvh',
+              backgroundColor: currentTheme.bgContainer,
+              display: 'flex',
+              flexDirection: 'column',
+              borderLeft: `1px solid ${currentTheme.border}`,
+              boxSizing: 'border-box',
+              overflowY: 'auto', // PERMITE SCROLL SI ES NECESARIO
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
+            {/* CABECERA MÓVIL CON BOTÓN DE CIERRE (X) */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              padding: '16px', 
+              borderBottom: `1px solid ${currentTheme.border}`,
+              flexShrink: 0 
+            }}>
+              <span style={{ fontWeight: '800', fontSize: '15px', color: currentTheme.textMain }}>Menú de Opciones</span>
               <button 
                 onClick={() => setMobileMenuOpen(false)} 
-                style={{ background: 'none', border: 'none', color: currentTheme.textMain, fontSize: '20px', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: currentTheme.textMuted, fontSize: '20px', cursor: 'pointer', padding: '4px' }}
               >
                 ✕
               </button>
             </div>
-            
-            <hr style={{ borderColor: currentTheme.border, margin: 0 }} />
 
-            {/* Opciones restantes para el celular */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button onClick={() => { setCurrentScreen('bankroll'); setMobileMenuOpen(false); }} style={drawerItemStyle(currentTheme)}>💳 Depósitos y Retiros</button>
-              <button onClick={() => { setCurrentScreen('calculators'); setMobileMenuOpen(false); }} style={drawerItemStyle(currentTheme)}>🧮 Calculadoras</button>
-              <button onClick={() => { setCurrentScreen('reports'); setMobileMenuOpen(false); }} style={drawerItemStyle(currentTheme)}>📈 Reportes y P&L</button>
-              <button onClick={() => { setCurrentScreen('admin'); setMobileMenuOpen(false); }} style={drawerItemStyle(currentTheme)}>⚙️ Administración</button>
-            </div>
-
-            {/* Controles de Tema y Sesión dentro del menú móvil */}
-            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '16px', borderTop: `1px solid ${currentTheme.border}` }}>
+            {/* CONTENIDO DEL MENÚ CON SCROLL Y BOTÓN DE SALIDA SIEMPRE VISIBLE */}
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'space-between', 
+              padding: '16px',
+              gap: '12px',
+              overflowY: 'auto' 
+            }}>
               
-              {/* Botón rápido para cambiar tema desde el celular */}
-              <button 
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                style={{
-                  width: '100%', padding: '10px', backgroundColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
-                  border: `1px solid ${currentTheme.border}`, borderRadius: '10px',
-                  color: currentTheme.textMain, fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                }}
-              >
-                {theme === 'dark' ? '☀️ Modo Claro' : '🌙 Modo Oscuro'}
-              </button>
+              {/* LISTA DE NAVEGACIÓN */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button onClick={() => handleNavigate('bankroll')} style={drawerItemStyle(currentScreen === 'bankroll', currentTheme)}>
+                  💳 Depósitos y Retiros
+                </button>
+                <button onClick={() => handleNavigate('calculators')} style={drawerItemStyle(currentScreen === 'calculators', currentTheme)}>
+                  🧮 Calculadoras
+                </button>
+                <button onClick={() => handleNavigate('reports')} style={drawerItemStyle(currentScreen === 'reports', currentTheme)}>
+                  📈 Reportes y P&L
+                </button>
+                <button onClick={() => handleNavigate('admin')} style={drawerItemStyle(currentScreen === 'admin', currentTheme)}>
+                  ⚙️ Administración
+                </button>
+              </div>
 
-              <button 
-                onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
-                style={{
-                  width: '100%', padding: '12px', backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '12px',
-                  color: '#f87171', fontSize: '13px', fontWeight: '700', cursor: 'pointer'
-                }}
-              >
-                🚪 Cerrar Sesión
-              </button>
+              {/* SECCIÓN INFERIOR: TEMA Y CERRAR SESIÓN */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '10px', 
+                paddingTop: '16px', 
+                borderTop: `1px solid ${currentTheme.border}`,
+                flexShrink: 0 
+              }}>
+                <button 
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  style={{
+                    width: '100%', 
+                    padding: '10px', 
+                    backgroundColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
+                    border: `1px solid ${currentTheme.border}`, 
+                    borderRadius: '10px',
+                    color: currentTheme.textMain, 
+                    fontSize: '13px', 
+                    fontWeight: '600', 
+                    cursor: 'pointer',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '8px'
+                  }}
+                >
+                  {theme === 'dark' ? '☀️ Modo Claro' : '🌙 Modo Oscuro'}
+                </button>
+
+                <button 
+                  onClick={handleLogout}
+                  style={{
+                    width: '100%', 
+                    padding: '12px', 
+                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)', 
+                    borderRadius: '10px',
+                    color: '#f87171', 
+                    fontSize: '13px', 
+                    fontWeight: '700', 
+                    cursor: 'pointer'
+                  }}
+                >
+                  🚪 Cerrar Sesión
+                </button>
+              </div>
+
             </div>
 
           </div>
@@ -317,7 +377,7 @@ export default function App() {
   )
 }
 
-// Estilos de apoyo para la barra de navegación inferior móvil
+// Estilos de apoyo
 const navBtnStyle = (isActive, currentTheme) => ({
   background: 'none',
   border: 'none',
@@ -334,14 +394,14 @@ const navBtnStyle = (isActive, currentTheme) => ({
   flex: 1
 })
 
-const drawerItemStyle = (currentTheme) => ({
-  background: 'transparent',
-  border: 'none',
+const drawerItemStyle = (isActive, currentTheme) => ({
+  background: isActive ? 'rgba(37, 99, 235, 0.2)' : 'transparent',
+  border: isActive ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
   color: currentTheme.textMain,
   textAlign: 'left',
   fontSize: '14px',
   padding: '12px',
   cursor: 'pointer',
   borderRadius: '8px',
-  fontWeight: '500'
+  fontWeight: isActive ? '700' : '500'
 })
